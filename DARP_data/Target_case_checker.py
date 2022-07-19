@@ -35,6 +35,21 @@ class target_case_checker_DARP:
         os.chdir(path)
     def get_data(self,file_name):
         FILE = open(file_name,"r")
+        # Read in constants (UAV and camera dependant)
+        self.refuel_time = int(FILE.readline()) # Seconds
+        self.take_off_height = float(FILE.readline()) # Metres
+        self.flight_time = int(FILE.readline()) # Seconds
+        self.vel = float(FILE.readline())
+        self.height = float(FILE.readline())
+        self.r_min = float(FILE.readline())
+        self.disc_h = float(FILE.readline())
+        self.disc_v = float(FILE.readline())
+        self.r_max = float(FILE.readline())
+        self.arc_l = float(FILE.readline())
+        self.gsd_h = float(FILE.readline())
+        self.v_max = float(FILE.readline())
+        self.h_max = float(FILE.readline())
+        # Read in variables for algorithm rerun including DARP (So no A or Ilabel read in)
         self.rows = int(FILE.readline())
         self.cols = int(FILE.readline())
         self.n_r = int(FILE.readline())
@@ -72,6 +87,21 @@ class target_case_checker_DARP:
         DPM.PRINT_TREE = False
         DPM.PATH_COLOR = 'k'
         DPM.TARGET_FINDING = self.TARGET_FINDING
+
+        # Set UAV and Camera dependent constants
+        DPM.REFUEL_TIME = self.refuel_time
+        DPM.TAKE_OFF_HEIGHT = self.take_off_height
+        DPM.FLIGHT_TIME = self.flight_time
+        DPM.VEL = self.vel
+        DPM.Height = self.height
+        DPM.r_min = self.r_min
+        DPM.DISC_H = self.disc_h
+        DPM.DISC_V = self.disc_v
+        DPM.r_max = self.r_max
+        DPM.ARC_L = self.arc_l
+        DPM.GSD_h = self.gsd_h
+        DPM.V_max = self.v_max
+        DPM.H_max = self.h_max
         
         DPM.algorithm_start(recompile=recompile)
         
@@ -127,6 +157,21 @@ class target_case_checker_MST:
         os.chdir(path)
     def get_data(self,file_name):
         FILE = open(file_name,"r")
+        # Read in constants (UAV and camera dependant)
+        self.refuel_time = int(FILE.readline()) # Seconds
+        self.take_off_height = float(FILE.readline()) # Metres
+        self.flight_time = int(FILE.readline()) # Seconds
+        self.vel = float(FILE.readline())
+        self.height = float(FILE.readline())
+        self.r_min = float(FILE.readline())
+        self.disc_h = float(FILE.readline())
+        self.disc_v = float(FILE.readline())
+        self.r_max = float(FILE.readline())
+        self.arc_l = float(FILE.readline())
+        self.gsd_h = float(FILE.readline())
+        self.v_max = float(FILE.readline())
+        self.h_max = float(FILE.readline())
+        # Read in parameters and variables
         self.rows = int(FILE.readline())
         self.cols = int(FILE.readline())
         self.n_r = int(FILE.readline())
@@ -165,11 +210,12 @@ class target_case_checker_MST:
         self.Ilabel = self.string_to_ilabel_grid(ILabelString,self.n_r,self.rows,self.cols)
         FILE.close()
     def rerun_MST(self, file_log = "MAIN_LOGGING.txt", show_grid=False,distance_measure = 0,recompile=True,corners = 0):
+        # Set general style constants
         DPM.PRINT_DARP = True
         DPM.PRINT_TREE = True
         DPM.PATH_COLOR = 'k'
         DPM.TARGET_FINDING = self.TARGET_FINDING
-        
+
         if(corners==0):
             DPM.PRINT_PATH = False
         elif(corners==1):
@@ -185,10 +231,28 @@ class target_case_checker_MST:
             DPM.PRINT_HALF_SHIFTS = True
             DPM.PRINT_DYNAMIC_CONSTRAINTS = True
 
+        # Set UAV and Camera dependent constants
+        DPM.REFUEL_TIME = self.refuel_time
+        DPM.TAKE_OFF_HEIGHT = self.take_off_height
+        DPM.FLIGHT_TIME = self.flight_time
+        DPM.VEL = self.vel
+        DPM.Height = self.height
+        DPM.r_min = self.r_min
+        DPM.DISC_H = self.disc_h
+        DPM.DISC_V = self.disc_v
+        DPM.r_max = self.r_max
+        DPM.ARC_L = self.arc_l
+        DPM.GSD_h = self.gsd_h
+        DPM.V_max = self.v_max
+        DPM.H_max = self.h_max
+
+        # Recompile and working directory setup
         DPM.algorithm_start(recompile=recompile)
         
+        # Algorithm setup - sets up all the necessary variables
         RA = DPM.Run_Algorithm(self.Grid, self.rip, self.dcells, self.Imp, show_grid, dist_meas=distance_measure,log_active=True,log_filename=file_log,target_active=False)
         RA.set_continuous(self.rip_sml,self.rip_cont,self.tp_cont)
+        # Reruns only the MST section, maintaining the DARP output from the original run
         RA.rerun_MST_only(self.A,self.Ilabel)
     def import_bool(self, string):
         # Extract boolean variables
