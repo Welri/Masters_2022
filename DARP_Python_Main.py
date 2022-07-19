@@ -51,8 +51,8 @@ g_acc = 9.81 # m/s
 ################################ UAV and CAMERA PARAMETERS ################################################################################################
 # Sony RX1R II 
 focal_length = 35.0 # mm
-V = 2
-H = 3
+V = 2.0
+H = 3.0
 AR = V/H # Aspect ratio (V/H)
 sensor_width = 35.9 # mm
 sensor_height = 24.0 # mm
@@ -64,7 +64,7 @@ V_cruise = 16 # m/s
 # V_stall unkown
 REFUEL_TIME = 100 # Seconds
 ''' !!!!! CHOSEN !!!!! '''
-TAKE_OFF_HEIGHT = 0 # m (TERRAIN DEPENDANT)
+TAKE_OFF_HEIGHT = 0.0 # m (TERRAIN DEPENDANT)
 # Flight time dependent on take-off height
 if(TAKE_OFF_HEIGHT<500):
     # Value for 0 - 500m take-off
@@ -76,12 +76,12 @@ else:
 ################################ HEIGHT AND VELOCITY ################################################################################################
 # CALCULATE MAXIMUM ALLOWABLE HEIGHT
 GSD_max = 4.0 # 4cm/px
-H_max = GSD_max * focal_length * px_w / (100.0 * sensor_width)
+H_max = GSD_max * focal_length * float(px_w) / (100.0 * sensor_width)
 
 # CHOSEN VALUES
 ''' !!!!! CHOSEN !!!!! '''
-VEL = 16 # m/s
-Height = 250 # m above ground
+VEL = 16.0 # m/s
+Height = 250.0 # m above ground
 
 # Sanity check for height
 if(Height>H_max):
@@ -89,7 +89,7 @@ if(Height>H_max):
     exit()
 
 # CALCULATING SUGGESTED MAXIMUM VELOCITY AT CHOSEN HEIGHT
-V_max = math.sqrt((Height *sensor_width / (focal_length*(4*math.sqrt(2)-2))) * g_acc * math.tan(phi_max*math.pi/180))
+V_max = math.sqrt((Height *sensor_width / (focal_length*(4.0*math.sqrt(2.0)-2.0))) * g_acc * math.tan(phi_max*math.pi/180))
 
 # Sanity check for velocity
 if(VEL>V_max):
@@ -105,7 +105,7 @@ print("MAXIMUM ALLOWABLE HEIGHT  : ", round(H_max,1), "\tCHOSEN HEIGHT  : ", Hei
 print("SUGGESTED MAXIMUM VELOCITY: ", round(V_max,1), "\tCHOSEN VELOCITY: ", VEL)
 
 ################################ CALCULATING MINIMUM TURNING RADIUS FROM VELOCITY ################################################################
-r_min = VEL**2 / ( g_acc * math.tan(phi_max*math.pi/180) ) # m - Minimum turning radius
+r_min = VEL**2 / ( g_acc * math.tan(phi_max*math.pi/180.0) ) # m - Minimum turning radius
 
 ################################ CALCULATING FOV FROM HIEGHT ################################################################################################
 FOV_H = Height * sensor_width / focal_length # result in m
@@ -119,11 +119,11 @@ DISC_V = DISC_H
 print("\nDISCRETIZATION SIZE: ", round(DISC_V,2), "X", round(DISC_H,2))
 r_max = DISC_V/2
 # v_max = math.sqrt( r_max * g_acc * math.tan(phi_max*math.pi/180) ) # m/s
-GSD_h = Height * 100 * (sensor_height/10) / ((focal_length/10) * px_h) # cm/px
-GSD_w = Height * 100 * (sensor_width/10) / ((focal_length/10) * px_w) # cm/px
+GSD_h = Height * 100.0 * (sensor_height/10.0) / ((focal_length/10.0) * float(px_h)) # cm/px
+GSD_w = Height * 100.0 * (sensor_width/10.0) / ((focal_length/10.0) * float(px_w)) # cm/px
 CT_Overlap = ((FOV_H -DISC_H)) / (DISC_H) # Crosstack overlap
 
-ARC_L = (DISC_V/2 - r_min) + r_min*np.pi/2 + (DISC_H/2 - r_min) # two straight segments, if there are straight segments, and the arc
+ARC_L = (DISC_V/2.0 - r_min) + r_min*np.pi/2.0 + (DISC_H/2.0 - r_min) # two straight segments, if there are straight segments, and the arc
 
 print("GSD: ",round(min(GSD_h,GSD_w),2),"Cross-track overlap: ", round(CT_Overlap,2),"\n")
 
