@@ -135,3 +135,4 @@ dmypy.json
 Input.txt
 Output.txt
 TARGET_LOG.txt
+MAIN_LOGGING.txt
