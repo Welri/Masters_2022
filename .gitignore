@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Java compile excludes
+*.class
+
+# Text file excludes
+Input.txt
+Output.txt
+TARGET_LOG.txt
