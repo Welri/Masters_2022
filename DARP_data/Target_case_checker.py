@@ -317,9 +317,13 @@ class target_case_checker_MST:
 
 if __name__ == "__main__":
     show_grid = True
+    TCC_DARP = target_case_checker_DARP()
+    TCC_DARP.get_data("TARGET_CASES/Case02.txt")
+    TCC_DARP.rerun_DARP(show_grid=show_grid,distance_measure=2,recompile=True)
+    
+    # TCC = target_case_checker_MST()
+    # TCC.get_data("TARGET_CASES/Case02.txt")
+    # TCC.rerun_MST(show_grid=show_grid,distance_measure=2,recompile=True,corners=2) # Distance measure shouldn't have an effect
 
-    TCC = target_case_checker_MST()
-    TCC.get_data("TARGET_CASES/Case01.txt")
-    TCC.rerun_MST(show_grid=show_grid,distance_measure=2,recompile=True,corners=1)
     if (show_grid == True):
         plt.show()
