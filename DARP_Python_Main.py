@@ -246,7 +246,7 @@ class Run_Algorithm:
                         self.print_DARP_graph() # prints a graph for each iteration
                     self.runs += 1
                     self.total_iterations = self.total_iterations + self.iterations
-                    print("RUN -","rl: ", self.rl, " cl: ", self.cc, " discrepancy allowed: ", self.dcells/self.fairDiv, "discrepancy achieved: ",self.maxDiscr)
+                    print("RUN -","rl: ", self.rl, " cl: ", self.cc, " discrepancy allowed: ", self.dcells/self.fairDiv, "discrepancy achieved: ",self.maxDiscr,"\n")
                     if self.DARP_success == True:
                         print("Successfully found solution...")
                         break
