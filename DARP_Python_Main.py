@@ -1,9 +1,10 @@
 from pickle import TRUE
 import subprocess
+from cv2 import COLOR_COLORCVT_MAX
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as pat
-import matplotlib
+import matplotlib.image as image
 from matplotlib.lines import Line2D
 import pathlib
 import os
@@ -23,9 +24,10 @@ import Peddle_Planner as pp
 ################################ SETTINGS ################################################################################################################
 TREE_COLOR = 'w'
 PATH_COLOR = 'k'
-PRINT_DARP = True
+PRINT_DARP = False
 PRINT_TREE = False
 PRINT_PATH = True
+EXAMPLE_ENVIRONMENT = TRUE
 
 # Note: You cannot count rotations without half shifts, time and distance measures fall away without dynamic constraints
 # Best combinations of PRINT_HALF_SHIFTS-PRINT_DYNAMIC_CONSTRAINTS are:
@@ -37,7 +39,7 @@ PRINT_DYNAMIC_CONSTRAINTS = True # CAREFUL when changing this
 PRINT_CIRCLE_CENTRES = False # Only valid with dynamic constraints active
 
 LINEWIDTH = 0.7
-S_MARKERIZE = LINEWIDTH*4
+S_MARKERIZE = LINEWIDTH*2
 MARKERSIZE=LINEWIDTH*12
 TICK_SPACING = 1
 FIGURE_TITLE = "DARP Continuous Results"
@@ -59,19 +61,26 @@ sensor_height = 24.0 # mm
 px_w = 8000
 px_h = 5320
 
-# Wingtra
-V_cruise = 16 # m/s
-# V_stall unkown
+# # Wingtra
+# V_cruise = 16 # m/s
+# V_stall = 0 # Unknown
+# REFUEL_TIME = 100 # Seconds
+# ''' !!!!! CHOSEN !!!!! '''
+# TAKE_OFF_HEIGHT = 0.0 # m (TERRAIN DEPENDANT)
+# # Flight time dependent on take-off height
+# if(TAKE_OFF_HEIGHT<500):
+#     # Value for 0 - 500m take-off
+#     FLIGHT_TIME = 59 * 60 # seconds
+# else:
+#     # Value for 2000m take-off
+#     FLIGHT_TIME = 42 * 60 # seconds
+
+# Strix
+V_cruise = 14
+V_stall = 7
 REFUEL_TIME = 100 # Seconds
-''' !!!!! CHOSEN !!!!! '''
-TAKE_OFF_HEIGHT = 0.0 # m (TERRAIN DEPENDANT)
-# Flight time dependent on take-off height
-if(TAKE_OFF_HEIGHT<500):
-    # Value for 0 - 500m take-off
-    FLIGHT_TIME = 59 * 60 # seconds
-else:
-    # Value for 2000m take-off
-    FLIGHT_TIME = 42 * 60 # seconds
+TAKE_OFF_HEIGHT = 300
+FLIGHT_TIME = 10*60*60 # Seconds
 
 ################################ HEIGHT AND VELOCITY ################################################################################################
 # CALCULATE MAXIMUM ALLOWABLE HEIGHT
@@ -80,8 +89,8 @@ H_max = GSD_max * focal_length * float(px_w) / (100.0 * sensor_width)
 
 # CHOSEN VALUES
 ''' !!!!! CHOSEN !!!!! '''
-VEL = 16.0 # m/s
-Height = 250.0 # m above ground
+VEL = 14.0 # m/s
+Height = 160.0 # m above ground
 
 # Sanity check for height
 if(Height>H_max):
@@ -94,6 +103,9 @@ V_max = math.sqrt((Height *sensor_width / (focal_length*(4.0*math.sqrt(2.0)-2.0)
 # Sanity check for velocity
 if(VEL>V_max):
     print("Error: Velocity is too high. Suggested Maximum: ",V_max, " m/s")
+    exit()
+if(VEL<=V_stall):
+    print("Error: Velocity is below stall.")
     exit()
 # if(VEL<V_stall):
 # print("Error: Velocity is too low. Stall Velocity: ",V_stall," m/s")
@@ -118,6 +130,8 @@ DISC_H = math.sqrt(2)/(4-math.sqrt(2)) * FOV_H
 DISC_V = DISC_H
 print("\nDISCRETIZATION SIZE: ", round(DISC_V,2), "X", round(DISC_H,2))
 r_max = DISC_V/2
+if(r_max < r_min):
+    print("ERROR: Invalid discretisation, r_max = ",round(r_max,2),", r_min = ",round(r_min,2))
 # v_max = math.sqrt( r_max * g_acc * math.tan(phi_max*math.pi/180) ) # m/s
 GSD_h = Height * 100.0 * (sensor_height/10.0) / ((focal_length/10.0) * float(px_h)) # cm/px
 GSD_w = Height * 100.0 * (sensor_width/10.0) / ((focal_length/10.0) * float(px_w)) # cm/px
@@ -841,7 +855,7 @@ class Run_Algorithm:
         plt.rc('axes', titlesize=15) 
 
         # Prints the DARP divisions
-        fig,ax = plt.subplots(figsize=(8, 8))
+        fig,ax = plt.subplots(figsize=(13, 13*self.vertical/self.horizontal))
 
         # Initialize cell colours
         # TODO: Somewhat redundant since I redo this in the cont function
@@ -871,13 +885,15 @@ class Run_Algorithm:
         
         ax.set_xticks(np.arange(-0.5, self.cols*2+0.5, step=2),minor=False)
         ax.set_yticks(np.arange(-0.5, self.rows*2+0.5, step=2),minor=False)
-        
+        ax.set_xlim([-0.5,self.cols*2-0.5])
+        ax.set_ylim([-0.5,self.rows*2-0.5])
         plt.xticks(rotation=90)
     
         xticks = list(map(str,np.arange(0, self.cols+1, step=1)))
         yticks = list(map(str,np.arange(0, self.rows+1, step=1)))
         ax.set_xticklabels(xticks)
         ax.set_yticklabels(yticks)
+
 
         plt.grid(which='major',axis='both', color='k')
 
@@ -902,8 +918,21 @@ class Run_Algorithm:
         plt.rc('axes', titlesize=15) 
 
         # Prints the DARP divisions
-        fig,self.ax = plt.subplots(figsize=(8, 8))
+        fig,self.ax = plt.subplots(figsize=(13, 13*self.vertical/self.horizontal))
+        
+        transparency = 0.5
 
+        # Import image - commentable
+        im = image.imread("Example_environments/obstacles02_upscaled.png")
+        shape = np.shape(im)
+        im2 = np.zeros(shape)
+        rows = len(im)
+        for i in range(rows):
+            im2[i] = im[rows-i-1]
+        plt.imshow(im2,alpha=0.7)
+        self.ax.invert_yaxis()
+        transparency = 0 # 0 is basically completely transparent
+        
         # Initialize cell colours
         # colours = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9","C10"]
         # colours = ['xkcd:nice blue','xkcd:dusty orange','xkcd:kelly green','xkcd:red','xkcd:brownish','xkcd:carnation pink','xkcd:medium grey','xkcd:gold','xkcd:turquoise blue','xkcd:purple','xkcd:lightblue','xkcd:lavender','xkcd:salmon','xkcd:magenta','xkcd:olive','xkcd:silver']
@@ -925,6 +954,9 @@ class Run_Algorithm:
         self.ax.set_yticks(np.arange(0, (self.rows*2+1)*DISC_V, step=2*DISC_V),minor=False)
         self.ax.set_xticks(np.arange(DISC_H, (self.cols*2-0.5)*DISC_H, step=2*DISC_H),minor=True) # Small cell grid_lines
         self.ax.set_yticks(np.arange(DISC_V, (self.rows*2-0.5)*DISC_V, step=2*DISC_V),minor=True)
+        self.ax.set_xlim([0,self.horizontal])
+        self.ax.set_ylim([0,self.vertical])
+
         plt.xticks(rotation=90)
         plt.grid(which='major',axis='both', color='k',linewidth=0.3)
         plt.grid(which='minor',axis='both',color='k',linewidth=0.3,linestyle=':')
@@ -939,12 +971,12 @@ class Run_Algorithm:
                 y1 = ( (self.rows - (j-0.5) - 1)*2 + 0.5 + 0.5 )*DISC_V
                 y2 = ( (self.rows - (j+0.5) - 1)*2 + 0.5 + 0.5 )*DISC_V
                 if self.A[j][i] == self.n_r:
-                    plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=0.75)
+                    plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=transparency)
                 else:
                     if(JOIN_REGIONS_FOR_REFUEL):
-                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]],alpha=0.75)
+                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]],alpha=transparency)
                     else:
-                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]],alpha=0.75)
+                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]],alpha=transparency)
 
         plt.title(FIGURE_TITLE)
 
@@ -1267,7 +1299,7 @@ class Prim_MST_maker:
             ind = 0
             ind_p = p
             KEEP_SEARCHING = True
-            while(ind_p!=len(wpnts)):
+            while(ind_p!=len(wpnts)-1):
                 wpnts_updated[ind] = wpnts[ind_p]
                 wpnts_class_updated[ind] = wpnts_class[ind_p]
                 if(TARGET_FINDING==True)and(KEEP_SEARCHING):
@@ -2314,8 +2346,8 @@ class generate_grid:
         self.rows = math.ceil(vert/(DISC_V*2))
         self.cols = math.ceil(hor/(DISC_H*2))
         self.GRID = np.zeros([self.rows, self.cols], dtype=int)
-        self.possible_indexes = np.argwhere(self.GRID == 0)
-        np.random.shuffle(self.possible_indexes)
+        # self.possible_indexes = np.argwhere(self.GRID == 0)
+        # np.random.shuffle(self.possible_indexes)
     def set_robots(self,n_r,coords):
         # Function not recently tested - might not work
         self.n_r =  n_r # number of robots
@@ -2332,15 +2364,26 @@ class generate_grid:
             self.GRID[self.rip[r][0]][self.rip[r][1]] = 2
     def set_obs(self,obs_coords):
         for obs in obs_coords:
-            self.GRID[obs[0]][obs[1]] = 1
+            if np.shape(obs) == (2,):
+                self.GRID[self.rows - obs[0] - 1][obs[1]] = 1
+            elif np.shape(obs) == (2,2):
+                row_max = np.max([self.rows - obs[0][0] - 1,self.rows - obs[1][0] - 1])
+                row_min = np.min([self.rows - obs[0][0] - 1,self.rows - obs[1][0] - 1])
+                col_max = np.max([obs[0][1],obs[1][1]])
+                col_min = np.min([obs[0][1],obs[1][1]])
+                for row in range(row_min,row_max+1):
+                    for col in range(col_min,col_max+1):
+                        self.GRID[row][col] = 1
     def randomise_robots(self,n_r):
+        possible_indexes = np.argwhere(self.GRID == 0)
+        np.random.shuffle(possible_indexes)
         self.n_r = n_r
         self.rip_sml = np.zeros([n_r,2],dtype=int)
         self.rip_cont = np.zeros([n_r,2],dtype=float)
         # self.rip = np.zeros([n_r,2],dtype=int)
         if self.n_r < self.rows*self.cols:
-            self.rip = self.possible_indexes[0:self.n_r]
-            self.possible_indexes = np.delete(self.possible_indexes,np.arange(0,self.n_r,1),0)
+            self.rip = possible_indexes[0:self.n_r]
+            possible_indexes = np.delete(possible_indexes,np.arange(0,self.n_r,1),0)
             val1 = self.rip[:, 0]
             val2 = self.rip[:, 1]
             self.GRID[val1, val2] = 2
@@ -2353,10 +2396,12 @@ class generate_grid:
             self.rip_cont[r][0] = (self.rip_sml[r][0]+0.5)*DISC_V # vertical
             self.rip_cont[r][1] = (self.rip_sml[r][1]+0.5)*DISC_H # horizontal
     def randomise_obs(self,obs_perc):
+        possible_indexes = np.argwhere(self.GRID == 0)
+        np.random.shuffle(possible_indexes)
         self.obs = math.floor(self.rows*self.cols*obs_perc/100)
         if self.obs < (self.rows*self.cols*0.75):
-            indices = self.possible_indexes[0:self.obs]
-            self.possible_indexes = np.delete(self.possible_indexes,np.arange(0,self.obs,1),0)
+            indices = possible_indexes[0:self.obs]
+            possible_indexes = np.delete(possible_indexes,np.arange(0,self.obs,1),0)
             val1 = indices[:, 0]
             val2 = indices[:, 1]
             self.GRID[val1, val2] = 1
@@ -2371,18 +2416,53 @@ if __name__ == "__main__":
 
 ## RUN AN INDIVIDUAL CASE -> CONTINUOUS SPACE##
     # Establish Environment Size - Chooses max horizontal and vertical dimensions and create rectangle
-    horizontal = 5000 # m
-    vertical = 5000 # m
+    horizontal = 15312 # m
+    vertical = 7606 # m
 
     # Generate environment grid
     GG = generate_grid(horizontal,vertical)
     
-    n_r = 10
-    obs_perc = 0
-    GG.randomise_robots(n_r) 
-    GG.randomise_obs(obs_perc)
-    GG.set_target([2000,2000]) # (vert,hor) from top left 
-
+    n_r = 3
+    # obs_perc = 0
+     
+    # GG.randomise_obs(obs_perc)
+    GG.set_target([2000,2000]) # (vert,hor) from top left
+    GG.set_obs([[41,0],[40,0],[39,0],[38,0],[37,0],[36,0],[35,0],[34,0],[33,0],[32,0],[31,0],[30,0],[0,0],
+                [41,1],[40,1],[39,1],[38,1],[37,1],[36,1],[35,1],[34,1],[33,1],[32,1],[31,1],[30,1],[0,1],[1,1],[2,1],
+                [41,2],[40,2],[39,2],[38,2],[37,2],[36,2],[35,2],[34,2],[33,2],[32,2],[31,2],[30,2],[29,2],[25,2],[0,2],[1,2],[2,2],
+                [41,3],[40,3],[39,3],[37,3],[36,3],[35,3],[0,3],[1,3],
+                [41,4],[40,4],[39,4],[0,4],[1,4],
+                [41,5],[0,5],
+                [41,6],[32,6],[31,6],
+                [41,7],[32,7],[31,7],
+                [34,8],[33,8],[32,8],[31,8],
+                [41,12],[40,12],
+                [41,13],[40,13],
+                [0,14],
+                [0,15],[1,15],[42,15],
+                [41,17],[32,17],
+                [41,18],
+                [40,22],
+                [[42,0],[42,84]],
+                [[42,85],[0,85]]])
+    GG.set_obs([[32,18],[33,18],[[42,19],[33,20]],[[41,21],[35,21]],[[40,22],[38,22]],[36,22],[27,22]])
+    GG.set_obs([[[41,33],[36,38]],[[35,31],[31,34]],[39,30],[39,32],[35,35],[36,32],[36,31],[[38,29],[37,32]],[41,39],[40,39],[[41,40],[38,43]],[[37,41],[34,43]],[[33,41],[31,42]],[[41,38],[41,36]],[36,45],[32,43],[31,43],[37,45],[[30,40],[31,41]],[[29,33],[32,35]],[[27,34],[28,35]],[[26,30],[33,30]],[26,31],
+                [32,36],[33,35],[26,31],[27,31],[39,31],[34,30],[33,29],[29,24],[27,22],[25,20],[32,40],[[28,29],[32,29]],[[29,28],[32,28]],[[28,27],[31,27]],[[27,26],[30,26]],[[27,25],[29,25]],[[25,24],[28,24]],[[25,23],[27,23]],[25,22],[26,22],[[23,20],[24,21]],[25,21],[22,20],[22,19],[[36,44],[39,44]],[26,21]])
+    GG.set_obs([[[41,48],[40,49]],[[37,47],[39,48]],[40,47],[39,49],[[41,50],[39,50]]])
+    GG.set_obs([[[41,51],[35,56]],[33,51],[34,51],[34,52],[[31,54],[34,55]],[34,56],[[30,55],[31,56]],[[36,57],[41,58]],[[38,59],[39,60]],[40,59],[36,59],[35,59]])
+    GG.set_obs([[[41,61],[41,65]],[40,63],[40,64],[40,65],[41,69],[41,70],[41,73],[41,74],[41,79],[16,84],[17,84],[0,46],[0,45],[1,46]])
+    GG.set_obs([[36,65],[33,64],[34,64],[31,68],[33,72],[35,74],[[27,63],[32,64]],[[30,65],[35,67]],[[32,68],[33,71]],[[34,70],[34,72]],
+                [[35,71],[36,73]],[30,62],[31,62],[35,64]]) # [[,],[,]]
+    GG.set_obs([[[33,81],[34,84]],[34,80],[36,83],[[35,82],[35,84]]])
+    GG.set_obs([[20,73],[[16,71],[16,73]],[[32,82],[32,84]],[32,79],[32,78],[33,78],[31,75],[31,76],[25,71],[[27,78],[31,84]],[[25,72],[26,83]],[[27,75],[30,77]],[[23,70],[24,78]],[24,79],[24,80],[[19,74],[22,76]],[[17,72],[18,75]],[[15,72],[15,73]],[[13,70],[14,71]],[19,73],[21,73],[22,73],[77,20],[77,21],[77,22],[14,72],[15,71]])
+    GG.set_obs([[21,57],[22,52],[19,49],[20,49],[15,51],[13,51],[14,44],[12,40],[12,47],[12,49],[12,50],[11,30],
+                [11,45],[11,46],[11,47],[10,29],[8,38],[7,27],[[23,59],[24,61]],[[21,58],[22,60]],[[20,55],[20,59]],
+                [[18,54],[19,57]],[[19,50],[21,52]],[[18,47],[18,53]],[[17,47],[17,56]],[[16,51],[16,53]],
+                [[13,47],[16,50]],[[14,45],[15,46]],[[12,41],[13,46]],[[14,40],[15,43]],[[13,32],[13,34]],
+                [[11,32],[12,37]],[[10,38],[11,42]],[[9,38],[9,40]],[[9,36],[10,37]],[[8,30],[10,35]],
+                [[8,25],[9,29]],[[5,28],[7,29]],[7,33],[[5,30],[7,32]],[11,29],[13,40],[19,47],[19,48],[22,51],[16,40],[16,41]])
+    GG.randomise_robots(n_r)
+    
     # Other parameters
     Imp = False
     maxIter = 10000
