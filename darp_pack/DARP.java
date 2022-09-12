@@ -656,7 +656,5 @@ public class DARP {
         return(d);
     }
 
-
-    // Should find a way to calculate Geodesic Distance (maybe use Astar)
     // USER CODE END
 }

@@ -22,12 +22,24 @@ import Peddle_Planner as pp
 '''
 # print("\n\n\n",__import__,"\n\n\n") 
 ################################ SETTINGS ################################################################################################################
+PRINTS = True
+FIGSIZE=12
 TREE_COLOR = 'w'
 PATH_COLOR = 'k'
-PRINT_DARP = False
+PRINT_DARP = True
+PRINT_COLOURS = True
 PRINT_TREE = False
 PRINT_PATH = True
-EXAMPLE_ENVIRONMENT = TRUE
+PRINT_RIP = True
+PRINT_TARGET = True
+# Parameters for specific examples
+EXAMPLE = False # Is an example environment currently active
+if(EXAMPLE):
+    EX_TYPE = 1 # 0:MOUNTAINOUS_LOW, 1:MOUNTAINOUS_HIGH, 2:GROUND, 3:MARINE
+    EX_EXECUTE_ALGORITHM = False # When true it removes enclosed space, runs DARP more than once and runs prim
+    EX_MAP = "Obs" # "Sat" - Satellite, "Topo" - Topographic, "Obs" - Topographic with Obstacles
+    OBS = True # Whether or not to print discrete obstacles
+    IMPORT_IMG = False
 
 # Note: You cannot count rotations without half shifts, time and distance measures fall away without dynamic constraints
 # Best combinations of PRINT_HALF_SHIFTS-PRINT_DYNAMIC_CONSTRAINTS are:
@@ -38,11 +50,12 @@ PRINT_HALF_SHIFTS = True # CAREFUL when changing this
 PRINT_DYNAMIC_CONSTRAINTS = True # CAREFUL when changing this
 PRINT_CIRCLE_CENTRES = False # Only valid with dynamic constraints active
 
-LINEWIDTH = 0.7
-S_MARKERIZE = LINEWIDTH*2
+LINEWIDTH = 1
+S_MARKERIZE = LINEWIDTH*4
 MARKERSIZE=LINEWIDTH*12
 TICK_SPACING = 1
-FIGURE_TITLE = "DARP Continuous Results"
+DARP_FIGURE_TITLE = "DARP Results"
+FIGURE_TITLE = "Champaigne Castle with Removed Obstacles to Remove Enclosed Spaces"
 TARGET_FINDING = True # Does path truncation and target printing
 JOIN_REGIONS_FOR_REFUEL = False
 
@@ -51,46 +64,109 @@ phi_max = 25 # max bank angle in degrees
 g_acc = 9.81 # m/s
 
 ################################ UAV and CAMERA PARAMETERS ################################################################################################
-# Sony RX1R II 
-focal_length = 35.0 # mm
-V = 2.0
-H = 3.0
-AR = V/H # Aspect ratio (V/H)
-sensor_width = 35.9 # mm
-sensor_height = 24.0 # mm
-px_w = 8000
-px_h = 5320
-
-# # Wingtra
-# V_cruise = 16 # m/s
-# V_stall = 0 # Unknown
-# REFUEL_TIME = 100 # Seconds
-# ''' !!!!! CHOSEN !!!!! '''
-# TAKE_OFF_HEIGHT = 0.0 # m (TERRAIN DEPENDANT)
-# # Flight time dependent on take-off height
-# if(TAKE_OFF_HEIGHT<500):
-#     # Value for 0 - 500m take-off
-#     FLIGHT_TIME = 59 * 60 # seconds
-# else:
-#     # Value for 2000m take-off
-#     FLIGHT_TIME = 42 * 60 # seconds
-
-# Strix
-V_cruise = 14
-V_stall = 7
-REFUEL_TIME = 100 # Seconds
-TAKE_OFF_HEIGHT = 300
-FLIGHT_TIME = 10*60*60 # Seconds
-
+if(EXAMPLE):
+    if((EX_TYPE == 0)or(EX_TYPE == 1)):
+        # Sony RX1R II
+        focal_length = 35.0 # mm
+        V = 2.0
+        H = 3.0
+        AR = V/H # Aspect ratio (V/H)
+        sensor_width = 35.9 # mm
+        sensor_height = 24.0 # mm
+        px_w = 8000
+        px_h = 5320
+        # Strix
+        V_cruise = 14
+        V_stall = 7
+        REFUEL_TIME = 100 # Seconds
+        TAKE_OFF_HEIGHT = 300
+        FLIGHT_TIME = 10*60*60 # Seconds
+    elif(EX_TYPE == 2):
+        # Sony RX1R II
+        focal_length = 35.0 # mm
+        V = 2.0
+        H = 3.0
+        AR = V/H # Aspect ratio (V/H)
+        sensor_width = 35.9 # mm
+        sensor_height = 24.0 # mm
+        px_w = 8000
+        px_h = 5320
+        # Wingtra
+        V_cruise = 16 # m/s
+        V_stall = 0 # Unknown
+        REFUEL_TIME = 100 # Seconds
+        ''' !!!!! CHOSEN !!!!! '''
+        TAKE_OFF_HEIGHT = 750 # m (TERRAIN DEPENDANT)
+        # Flight time dependent on take-off height
+        if(TAKE_OFF_HEIGHT<500):
+            # Value for 0 - 500m take-off
+            FLIGHT_TIME = 59 * 60 # seconds
+        else:
+            # Value for 2000m take-off
+            FLIGHT_TIME = 42 * 60 # seconds
+    elif(EX_TYPE==3):
+        # Sony RX1R II
+        focal_length = 35.0 # mm
+        V = 2.0
+        H = 3.0
+        AR = V/H # Aspect ratio (V/H)
+        sensor_width = 35.9 # mm
+        sensor_height = 24.0 # mm
+        px_w = 8000
+        px_h = 5320
+        # GULL
+        phi_max = 35
+        V_cruise = 38
+        V_stall = 0
+        REFUEL_TIME = 100 # Seconds
+        TAKE_OFF_HEIGHT = 0
+        FLIGHT_TIME = 60*60 # Seconds
+else:
+    # Sony RX1R II
+    focal_length = 35.0 # mm
+    V = 2.0
+    H = 3.0
+    AR = V/H # Aspect ratio (V/H)
+    sensor_width = 35.9 # mm
+    sensor_height = 24.0 # mm
+    px_w = 8000
+    px_h = 5320
+    # Wingtra
+    V_cruise = 16 # m/s
+    V_stall = 0 # Unknown
+    REFUEL_TIME = 100 # Seconds
+    ''' !!!!! CHOSEN !!!!! '''
+    TAKE_OFF_HEIGHT = 750 # m (TERRAIN DEPENDANT)
+    # Flight time dependent on take-off height
+    if(TAKE_OFF_HEIGHT<500):
+        # Value for 0 - 500m take-off
+        FLIGHT_TIME = 59 * 60 # seconds
+    else:
+        # Value for 2000m take-off
+        FLIGHT_TIME = 42 * 60 # seconds
 ################################ HEIGHT AND VELOCITY ################################################################################################
 # CALCULATE MAXIMUM ALLOWABLE HEIGHT
-GSD_max = 4.0 # 4cm/px
+GSD_max = 4.7 # 4cm/px
 H_max = GSD_max * focal_length * float(px_w) / (100.0 * sensor_width)
 
 # CHOSEN VALUES
 ''' !!!!! CHOSEN !!!!! '''
-VEL = 14.0 # m/s
-Height = 160.0 # m above ground
+if(EXAMPLE):
+    if(EX_TYPE==0):
+        VEL = 14.0 # m/s
+        Height = 160.0 # m above heighest point on ground
+    elif(EX_TYPE==1):
+        VEL = 14.0 # m/s
+        Height = 158 # m above heighest point on ground
+    elif(EX_TYPE==2):
+        VEL = 16.0 # m/s
+        Height = 210.0 # m above heighest point on ground
+    elif(EX_TYPE==3):
+        VEL = 19.0 # m/s
+        Height = 205.0 # m above heighest point on ground
+else:
+    VEL = 16.0 # m/s
+    Height = 210.0 # m above heighest point on ground
 
 # Sanity check for height
 if(Height>H_max):
@@ -111,10 +187,11 @@ if(VEL<=V_stall):
 # print("Error: Velocity is too low. Stall Velocity: ",V_stall," m/s")
 # exit()
 
-print("USEFUL VALUES")
-print("-------------")
-print("MAXIMUM ALLOWABLE HEIGHT  : ", round(H_max,1), "\tCHOSEN HEIGHT  : ", Height)
-print("SUGGESTED MAXIMUM VELOCITY: ", round(V_max,1), "\tCHOSEN VELOCITY: ", VEL)
+if(PRINTS):
+    print("USEFUL VALUES")
+    print("-------------")
+    print("MAXIMUM ALLOWABLE HEIGHT  : ", round(H_max,1), "\tCHOSEN HEIGHT  : ", Height)
+    print("SUGGESTED MAXIMUM VELOCITY: ", round(V_max,1), "\tCHOSEN VELOCITY: ", VEL)
 
 ################################ CALCULATING MINIMUM TURNING RADIUS FROM VELOCITY ################################################################
 r_min = VEL**2 / ( g_acc * math.tan(phi_max*math.pi/180.0) ) # m - Minimum turning radius
@@ -128,10 +205,12 @@ FOV_V = AR*FOV_H # m
 # Note: for asymmetric cells FOV_V < FOV_H is a requirement
 DISC_H = math.sqrt(2)/(4-math.sqrt(2)) * FOV_H
 DISC_V = DISC_H
-print("\nDISCRETIZATION SIZE: ", round(DISC_V,2), "X", round(DISC_H,2))
+if(PRINTS):
+    print("\nDISCRETIZATION SIZE: ", round(DISC_V,2), "X", round(DISC_H,2))
 r_max = DISC_V/2
 if(r_max < r_min):
-    print("ERROR: Invalid discretisation, r_max = ",round(r_max,2),", r_min = ",round(r_min,2))
+    if(PRINTS):
+        print("ERROR: Invalid discretisation, r_max = ",round(r_max,2),", r_min = ",round(r_min,2))
 # v_max = math.sqrt( r_max * g_acc * math.tan(phi_max*math.pi/180) ) # m/s
 GSD_h = Height * 100.0 * (sensor_height/10.0) / ((focal_length/10.0) * float(px_h)) # cm/px
 GSD_w = Height * 100.0 * (sensor_width/10.0) / ((focal_length/10.0) * float(px_w)) # cm/px
@@ -139,7 +218,8 @@ CT_Overlap = ((FOV_H -DISC_H)) / (DISC_H) # Crosstack overlap
 
 ARC_L = (DISC_V/2.0 - r_min) + r_min*np.pi/2.0 + (DISC_H/2.0 - r_min) # two straight segments, if there are straight segments, and the arc
 
-print("GSD: ",round(min(GSD_h,GSD_w),2),"Cross-track overlap: ", round(CT_Overlap,2),"\n")
+if(PRINTS):
+    print("GSD: ",round(min(GSD_h,GSD_w),2),"Cross-track overlap: ", round(CT_Overlap,2),"\n")
 
 ################################ CLASSES AND FUNCTIONS ################################################################################################
 
@@ -205,8 +285,7 @@ class Run_Algorithm:
                 val = 0
             elif val>=0:
                 self.n_runs[r] = val
-                val += 1
-    
+                val += 1    
     def set_continuous(self,rip_sml,rip_cont,tp_cont=[0,0],start_cont = None):
         self.horizontal = 2*DISC_H*self.cols 
         self.vertical = 2*DISC_V*self.rows
@@ -237,12 +316,15 @@ class Run_Algorithm:
             self.rip_cont_temp[r][0] = rip_cnt_temp[r][0]
             self.rip_cont_temp[r][1] = rip_cnt_temp[r][1]
             self.rip_cont[r][0] = self.vertical - rip_cnt_temp[r][0]
-            self.rip_cont[r][1] = rip_cnt_temp[r][1]
-         
+            self.rip_cont[r][1] = rip_cnt_temp[r][1]         
     def main(self):
         #  DARP SECTION
         timestart = time.time_ns()
-        self.enclosed_space_handler()
+        if(EXAMPLE):
+            if(EX_EXECUTE_ALGORITHM):
+                self.enclosed_space_handler()
+        else:
+            self.enclosed_space_handler()
         self.general_error_handling()
         self.connected_bool = np.zeros(self.n_r, dtype=bool)
         self.Ilabel_final = np.zeros(
@@ -260,10 +342,15 @@ class Run_Algorithm:
                         self.print_DARP_graph() # prints a graph for each iteration
                     self.runs += 1
                     self.total_iterations = self.total_iterations + self.iterations
-                    print("RUN -","rl: ", self.rl, " cl: ", self.cc, " discrepancy allowed: ", self.dcells/self.fairDiv, "discrepancy achieved: ",self.maxDiscr,"\n")
+                    if(PRINTS):
+                        print("RUN -","rl: ", self.rl, " cl: ", self.cc, " discrepancy allowed: ", self.dcells/self.fairDiv, "discrepancy achieved: ",self.maxDiscr,"\n")
                     if self.DARP_success == True:
-                        print("Successfully found solution...")
+                        if(PRINTS):
+                            print("Successfully found solution...")
                         break
+                    if(EXAMPLE):
+                        if(EX_EXECUTE_ALGORITHM==False):
+                            break # Don't let DARP run more than once (not a great solution but it works)
                 else:
                     continue
                 break
@@ -272,16 +359,21 @@ class Run_Algorithm:
             # Cancels program if any errors occurred in error handling
             # Calculate the obstacles seen as they aren't returned by Java algorithm
             self.obs = len(np.argwhere(self.Grid == 1))
-            print("Aborting Algorithm...")
+            if(PRINTS):
+                print("Aborting Algorithm...")
             return()
         if self.DARP_success == False:
-            print("No solution was found...")
+            if(PRINTS):
+                print("No solution was found...")
         self.time_DARP_total = time.time_ns() - timestart
         
         # Print DARP
         if self.show_grid==True:
             self.cont_DARP_graph() # prints final graph
-        
+        if(EXAMPLE):
+            if(EX_EXECUTE_ALGORITHM == False):
+                return
+        # temporary for example
         # PRIM MST SECTION
         timestart = time.time_ns()
         self.primMST()
@@ -425,7 +517,6 @@ class Run_Algorithm:
                 file_log.write(str(self.total_iterations))
                 file_log.write('\n')
             file_log.close()
-
         if(self.target_active == True):
             file_log = open(self.target_filename, "a")
             file_log.write("\n")
@@ -517,7 +608,6 @@ class Run_Algorithm:
             file_log.write(Ilabelstring)
             file_log.write("\n")
             file_log.close()
-    
     def rerun_MST_only(self,A,Ilabel):
         # UNTESTED FUNCTION
         # Requires having run init and set continuous functions
@@ -526,11 +616,11 @@ class Run_Algorithm:
 
         # Print DARP
         if self.show_grid==True:
+            self.print_DARP_graph()
             self.cont_DARP_graph() # prints final graph
         
         # PRIM MST SECTION
         self.primMST()
-
     def primMST(self):
         # Run MST algorithm
         pMST = Prim_MST_maker(self.A,self.n_r,self.rows,self.cols,self.rip,self.Ilabel_final,self.rip_cont,self.rip_sml,self.tp_cont,self.n_link,self.n_runs,self.refuels,self.nr_og,self.start_cont)
@@ -637,13 +727,18 @@ class Run_Algorithm:
             for r in range(self.n_r):
                 pMST.waypoint_final_generation(pMST.wpnts_cont_list[r],pMST.wpnts_class_list[r],r,0)
 
-        print("\nALLOWABLE FLIGHT TIME WITH FUEL CONSTRAINTS: ", FLIGHT_TIME )
+        if(PRINTS):
+            print("\nALLOWABLE FLIGHT TIME WITH FUEL CONSTRAINTS: ", FLIGHT_TIME )
         
         # Print STC paths on DARP plot
         if (self.show_grid == True):
+            if(TARGET_FINDING)and(PRINTS):
+                print("TARGET FINDING TIME: ", int(pMST.TIME_BREAK))
             for r in range(self.n_r):
-                # pMST.print_graph(pMST.free_nodes_list[r],pMST.parents_list[r],self.ax,r,time_end=pMST.TIME_BREAK)
-                pMST.print_graph(pMST.free_nodes_list[r],pMST.parents_list[r],self.ax,r)
+                if(TARGET_FINDING):
+                    pMST.print_graph(pMST.free_nodes_list[r],pMST.parents_list[r],self.ax,r,time_end=pMST.TIME_BREAK)
+                else:
+                    pMST.print_graph(pMST.free_nodes_list[r],pMST.parents_list[r],self.ax,r)
         if(PRINT_DYNAMIC_CONSTRAINTS):   
             # Print relevant data in table
             if (self.refuels > 0):
@@ -666,7 +761,8 @@ class Run_Algorithm:
                     rot_ach = pMST.rotations[r]
                     dist_ach = pMST.dist_totals[r]
                     data.append([r,round(total_time,1),round(FLIGHT_TIME,1),round(FLIGHT_TIME - total_time,1),round(dist_ach,1),round(rot_ach,0)])
-            print(tabulate(data))
+            if(PRINTS):
+                print(tabulate(data))
             
             # Print schedules in data table
             if (self.refuels > 0):
@@ -681,10 +777,11 @@ class Run_Algorithm:
                         for i in range(6):
                             l.append(round(self.schedule[r][i],1))
                         data.append(l)
-                print(tabulate(data))
+                if(PRINTS):
+                    print(tabulate(data))
 
             # Print schedules graph
-            if (self.refuels > 0):
+            if (self.refuels > 0)and(print_graphs):
                 plt.rc('font', size=12)
                 plt.rc('axes', titlesize=15)
                 fig,ax = plt.subplots(figsize=(12,1.5*self.nr_og))
@@ -735,21 +832,21 @@ class Run_Algorithm:
                 # plt.grid(which='minor',axis='x', color='k',linestyle='dotted',linewidth=0.1)
                 # plt.xticks(rotation=90)
                 ax.legend(handles = legend_elements,loc="best")
-
     def enclosed_space_handler(self):
         # Enclosed spaces (unreachable areas) are classified as obstacles
         ES = enclosed_space_check(
             self.n_r, self.rows, self.cols, self.Grid, self.rip)
         if ES.max_label > 1:
             self.es_flag = True
-            print(
-                "WARNING: Automatic removal of enclosed space (it is considered an obstacle) ....")
+            if(PRINTS):
+                print("WARNING: Automatic removal of enclosed space (it is considered an obstacle) ....")
             self.label_matrix = ES.final_labels
             inds = np.argwhere(self.label_matrix > 1)
             temp = False
             for ind in inds:
                 if self.Grid[ind[0]][ind[1]] == 2:
-                    print("WARNING: Automatic removal of robot in enclosed space...")
+                    if(PRINTS):
+                        print("WARNING: Automatic removal of robot in enclosed space...")
                     self.Grid[ind[0]][ind[1]] = 1
                     temp = True
                 else:
@@ -757,7 +854,6 @@ class Run_Algorithm:
             if temp == True:
                 self.rip = np.argwhere(self.Grid == 2)
                 self.n_r = len(self.rip)
-
     def general_error_handling(self):
         if(self.n_r < 1):
             print("WARNING: No Robot Initial Positions Given....\n")
@@ -783,8 +879,7 @@ class Run_Algorithm:
         if(VEL>V_max):
             print("WARNING: velocity is too high. Cannot make turning radius and have complete coverage.\n")
         if(Height>H_max):
-            print("WARNING: height is too high for required GSD")
-    
+            print("WARNING: height is too high for required GSD")    
     def write_input(self):
         # Writes relevant inputs for java code to file
         # print(pathlib.Path("Input.txt").absolute())
@@ -812,7 +907,6 @@ class Run_Algorithm:
                 file_in.write('\n')
         file_in.write(str(self.Imp))
         file_in.close()
-
     def run_subprocess(self):
         # Runs the OS appropriate script to run the Java program for the DARP algorithm
         # subprocess.call([r'DARP_Java\Run_Java.bat'])
@@ -825,7 +919,6 @@ class Run_Algorithm:
             subprocess.call("./Run_Java.sh")
         else:
             print("WARNING: Unrecognised operating system")
-
     def read_output(self):
         # Read file containing outputs that were wrote to file by Java file
         self.A = np.zeros([self.rows, self.cols], dtype=int)
@@ -849,13 +942,12 @@ class Run_Algorithm:
                 for j in range(self.cols):
                     self.Ilabel_final[r][i][j] = int(file_out.readline())
         file_out.close()
-
     def print_DARP_graph(self):
         plt.rc('font', size=12)
         plt.rc('axes', titlesize=15) 
 
         # Prints the DARP divisions
-        fig,ax = plt.subplots(figsize=(13, 13*self.vertical/self.horizontal))
+        fig,ax = plt.subplots(figsize=(FIGSIZE, FIGSIZE*self.vertical/self.horizontal))
 
         # Initialize cell colours
         # TODO: Somewhat redundant since I redo this in the cont function
@@ -873,13 +965,15 @@ class Run_Algorithm:
         for r in range(self.n_r):
             ripy = self.rows*2 - self.rip_sml[r][0] - 1
             ripx = self.rip_sml[r][1]
-            plt.plot(ripx,ripy,'.k', markersize=MARKERSIZE)
+            if(PRINT_RIP):
+                plt.plot(ripx,ripy,'.k', markersize=MARKERSIZE)
+                plt.plot(ripx,ripy,'.w', markersize=MARKERSIZE/3)
 
         # REMOVE AXES ENTIRELY
         # ax.axes.xaxis.set_visible(False)
         # ax.axes.yaxis.set_visible(False)
 
-        # USED THIS ONCE TO GET TICKS AT THE SMALL CELL SENTRES
+        # USED THIS ONCE TO GET TICKS AT THE SMALL CELL CENTRES
         # ax.set_xticks(np.arange(0, self.cols*2, step=TICK_SPACING),minor=True)
         # ax.set_yticks(np.arange(0, self.rows*2, step=TICK_SPACING),minor=True)
         
@@ -887,13 +981,14 @@ class Run_Algorithm:
         ax.set_yticks(np.arange(-0.5, self.rows*2+0.5, step=2),minor=False)
         ax.set_xlim([-0.5,self.cols*2-0.5])
         ax.set_ylim([-0.5,self.rows*2-0.5])
-        plt.xticks(rotation=90)
+        ax.set_xlabel("X Axis",fontsize=10)
+        ax.set_ylabel("Y Axis",fontsize=10)
+        # plt.xticks(rotation=90)
     
         xticks = list(map(str,np.arange(0, self.cols+1, step=1)))
         yticks = list(map(str,np.arange(0, self.rows+1, step=1)))
         ax.set_xticklabels(xticks)
         ax.set_yticklabels(yticks)
-
 
         plt.grid(which='major',axis='both', color='k')
 
@@ -905,33 +1000,72 @@ class Run_Algorithm:
                 y1 = (self.rows - (j-0.5) - 1)*2 + 0.5
                 y2 = (self.rows - (j+0.5) - 1)*2 + 0.5
                 if self.A[j][i] == self.n_r:
-                    plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=0.75 )
+                    plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=1 )
                 else:
                     if(JOIN_REGIONS_FOR_REFUEL):
-                        plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]], alpha=0.75)
+                        plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]], alpha=0.8)
                     else:
-                        plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]], alpha=0.75)
-        plt.title("DARP Results")
-    
+                        if(PRINT_COLOURS):
+                            plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]], alpha=0.8)
+                        else:
+                            plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], 'w', alpha=0.8)
+        plt.title(DARP_FIGURE_TITLE)    
     def cont_DARP_graph(self):
-        plt.rc('font', size=12)
+        plt.rc('font', size=8)
         plt.rc('axes', titlesize=15) 
 
         # Prints the DARP divisions
-        fig,self.ax = plt.subplots(figsize=(13, 13*self.vertical/self.horizontal))
+        fig,self.ax = plt.subplots(figsize=(FIGSIZE, FIGSIZE*self.vertical/self.horizontal))
         
-        transparency = 0.5
+        DARP_transparency = 0.8
+        Object_transparency = 1
+        if(EXAMPLE):
+            Image_transparency = 0.8
 
         # Import image - commentable
-        im = image.imread("Example_environments/obstacles02_upscaled.png")
-        shape = np.shape(im)
-        im2 = np.zeros(shape)
-        rows = len(im)
-        for i in range(rows):
-            im2[i] = im[rows-i-1]
-        plt.imshow(im2,alpha=0.7)
-        self.ax.invert_yaxis()
-        transparency = 0 # 0 is basically completely transparent
+        if(EXAMPLE):
+            if(IMPORT_IMG):
+                if(EX_TYPE == 0):
+                    if(EX_MAP == 'Sat'):
+                        im = image.imread("Example_environments/spitskop_sat_upscaled.png") 
+                    elif(EX_MAP == 'Topo'):
+                        im = image.imread("Example_environments/spitskop_topo_upscaled.png")
+                    elif(EX_MAP == 'Obs'):
+                        im = image.imread("Example_environments/spitskop_obstacles_upscaled.png") 
+                if(EX_TYPE == 1):
+                    if(EX_MAP == 'Sat'):
+                        im = image.imread("Example_environments/MC_sat_upscaled.png") 
+                    elif(EX_MAP == 'Topo'):
+                        im = image.imread("Example_environments/MC_topo_upscaled.png")
+                    elif(EX_MAP == 'Obs'):
+                        # im = image.imread("Example_environments/MC_obstacles_upscaled.png") 
+                        # im = image.imread("Example_environments/MC_obs_white_upscaled.png") 
+                        im = image.imread("Example_environments/MC_obs_black_upscaled.png") 
+                elif(EX_TYPE == 2):
+                    if(EX_MAP == 'Sat'):
+                        im = image.imread("Example_environments/Aberdeen_sat_cropped_upscaled.png") # GROUND
+                    elif(EX_MAP == 'Topo'):
+                        print("OPTION NOT YET INCLUDED")
+                        exit()
+                    elif(EX_MAP == 'Obs'):
+                        im = image.imread("Example_environments/Aberdeen_obstacles_upscaled.png") # GROUND
+                elif(EX_TYPE == 3):
+                    if(EX_MAP == 'Sat'):
+                        print("OPTION NOT YET INCLUDED")
+                        exit()
+                    elif(EX_MAP == 'Topo'):
+                        print("OPTION NOT YET INCLUDED")
+                        exit()
+                    elif(EX_MAP == 'Obs'):
+                        im = image.imread("Example_environments/Jbay_obs_upscaled.png") # GROUND
+
+                shape = np.shape(im)
+                im2 = np.zeros(shape)
+                rows = len(im)
+                for i in range(rows):
+                    im2[i] = im[rows-i-1]
+                plt.imshow(im2,alpha=Image_transparency)
+                self.ax.invert_yaxis()
         
         # Initialize cell colours
         # colours = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9","C10"]
@@ -956,6 +1090,8 @@ class Run_Algorithm:
         self.ax.set_yticks(np.arange(DISC_V, (self.rows*2-0.5)*DISC_V, step=2*DISC_V),minor=True)
         self.ax.set_xlim([0,self.horizontal])
         self.ax.set_ylim([0,self.vertical])
+        self.ax.set_xlabel("X Axis Distance [m]",fontsize=12)
+        self.ax.set_ylabel("Y Axis Distance [m]",fontsize=12)
 
         plt.xticks(rotation=90)
         plt.grid(which='major',axis='both', color='k',linewidth=0.3)
@@ -971,15 +1107,22 @@ class Run_Algorithm:
                 y1 = ( (self.rows - (j-0.5) - 1)*2 + 0.5 + 0.5 )*DISC_V
                 y2 = ( (self.rows - (j+0.5) - 1)*2 + 0.5 + 0.5 )*DISC_V
                 if self.A[j][i] == self.n_r:
-                    plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=transparency)
+                    plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=Object_transparency)
                 else:
                     if(JOIN_REGIONS_FOR_REFUEL):
-                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]],alpha=transparency)
+                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]],alpha=DARP_transparency)
                     else:
-                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]],alpha=transparency)
+                        if(PRINT_COLOURS):
+                            plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]],alpha=DARP_transparency)
+                        else:
+                            plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], 'w',alpha=DARP_transparency)
+         # Plot robot initial positions
+        # if(PRINT_RIP):
+        #     for r in range(self.n_r):
+        #         plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.k',markersize=int(MARKERSIZE))
+        #         plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.w',markersize=int(MARKERSIZE/3))
 
         plt.title(FIGURE_TITLE)
-
     def import_bool(self, string):
         # Extract boolean variables
         if string[0] == "1" or string[0] == "t" or string[0] == "T":
@@ -1006,7 +1149,6 @@ class enclosed_space_check:
         self.rip = rip
         self.create_binary_grid()
         self.final_labels = self.compact_labeling()
-
     def create_binary_grid(self):
         for ind in self.rip:
             self.binary_grid[ind[0]][ind[1]] = 0
@@ -1014,12 +1156,10 @@ class enclosed_space_check:
         indices_zero = self.binary_grid == 0
         self.binary_grid[indices_one] = 0
         self.binary_grid[indices_zero] = 1
-
     def transform2Dto1D(self, array2D):
         length = len(array2D)*len(array2D[0])
         array1D = np.reshape(array2D, length)
         return(array1D)
-
     def labeling(self, bin1D):
         rst = np.zeros([self.n_rows*self.n_cols], dtype=int)
         self.parent = np.zeros([self.MAX_LABELS], dtype=int)
@@ -1057,7 +1197,6 @@ class enclosed_space_check:
                 rst[ind] = self.uf_find(rst[ind])
         self.next_label -= 1
         return(rst)
-
     def compact_labeling(self):
         bin_1D = self.transform2Dto1D(self.binary_grid)
         self.MAX_LABELS = self.n_rows * self.n_cols
@@ -1088,7 +1227,6 @@ class enclosed_space_check:
 
         label2D = np.reshape(label1D, [self.n_rows, self.n_cols])
         return(label2D)
-
     def uf_union(self, a, b):
         a = int(a)
         b = int(b)
@@ -1101,7 +1239,6 @@ class enclosed_space_check:
                 self.parent[a] = b
             else:
                 self.parent[b] = a
-
     def uf_find(self, r):
         while (self.parent[r] > 0):
             r = self.parent[r]
@@ -1285,10 +1422,10 @@ class Prim_MST_maker:
             self.rip_cont[r] = self.wpnts_cont_list[r][self.p[r]]
 
         # Shifting waypoints to start at robot position and making it closed loop
-        if(TARGET_FINDING):
-            print("Robot:",self.TARGET_CELL[0],"Ind: ",self.TARGET_CELL[1],"Waypoint: ",self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]],"Target Location: ",self.t_y,self.t_x)
-        self.update_wpnts()
-   
+        if(TARGET_FINDING)and(PRINTS):
+            # print("Robot:",self.TARGET_CELL[0]," Ind: ",self.TARGET_CELL[1]," Waypoint: ",self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]]," Target Location: ",self.t_y,self.t_x)
+            print(" Waypoint: ",self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][0],self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][1]," Target Location: ",self.t_y,self.t_x)
+        self.update_wpnts()  
     def update_wpnts(self):
         for r in range(self.n_r):
             wpnts = self.wpnts_cont_list[r]
@@ -1299,7 +1436,7 @@ class Prim_MST_maker:
             ind = 0
             ind_p = p
             KEEP_SEARCHING = True
-            while(ind_p!=len(wpnts)-1):
+            while(ind_p!=len(wpnts)):
                 wpnts_updated[ind] = wpnts[ind_p]
                 wpnts_class_updated[ind] = wpnts_class[ind_p]
                 if(TARGET_FINDING==True)and(KEEP_SEARCHING):
@@ -1322,13 +1459,11 @@ class Prim_MST_maker:
             wpnts_class_updated[ind] = wpnts_class[p]
             self.wpnts_cont_list[r] = wpnts_updated
             self.wpnts_class_list[r] = wpnts_class_updated
-
     def select_start_node(self,nodes):
         for node in nodes:
             # Select first node with only one edge
             if(node.no_edges==1):
                 return(node)
-
     def parse_directions(self,nodes,node):
         start_x = node.coord_x
         start_y = node.coord_y
@@ -1348,7 +1483,6 @@ class Prim_MST_maker:
                     node.dir[i]= 1 # East
                 if(dx==-1):
                     node.dir[i]= 3 # West
-
     def update_arrow(self,nodes,start_node,prev_dir):
         edges = start_node.edges
         direction = start_node.dir
@@ -1387,7 +1521,6 @@ class Prim_MST_maker:
         elif(new_dir=='B'):
             self.back_turn_wpnts(arrow)
         return(arrow)   
-
     def left_turn_wpnts(self,arrow):
         # Add one waypoint - already done half CCW shift (comments are mostly here)
         direction = arrow.direction
@@ -1451,8 +1584,7 @@ class Prim_MST_maker:
                 if(self.t_x<=x_c+DISC_H/2)and(self.t_x>=x_c-DISC_H/2)and(self.t_y<=y_c+DISC_V/2)and(self.t_y>=y_c-DISC_V/2):
                     # Target is within this cell
                     self.TARGET_CELL = np.array([self.current_r,self.wpnt_ind-1]) # stores robot and index at which target is
-                    self.TARGET_FOUND = True
-    
+                    self.TARGET_FOUND = True    
     def fw_turn_wpnts(self,arrow):
         # Add two waypoints
         direction = arrow.direction
@@ -1564,8 +1696,7 @@ class Prim_MST_maker:
                     self.TARGET_FOUND = True
                 elif(self.t_x<=x2_c+DISC_H/2)and(self.t_x>=x2_c-DISC_H/2)and(self.t_y<=y2_c+DISC_V/2)and(self.t_y>=y2_c-DISC_V/2):
                     self.TARGET_CELL = np.array([self.current_r,self.wpnt_ind-1])
-                    self.TARGET_FOUND = True
-    
+                    self.TARGET_FOUND = True    
     def right_turn_wpnts(self,arrow):
         # Add three waypoints
         direction = arrow.direction
@@ -1724,8 +1855,7 @@ class Prim_MST_maker:
                     self.TARGET_FOUND = True
                 elif(self.t_x<=x3_c+DISC_H/2)and(self.t_x>=x3_c-DISC_H/2)and(self.t_y<=y3_c+DISC_V/2)and(self.t_y>=y3_c-DISC_V/2):
                     self.TARGET_CELL = np.array([self.current_r,self.wpnt_ind-1])
-                    self.TARGET_FOUND = True
-    
+                    self.TARGET_FOUND = True    
     def back_turn_wpnts(self,arrow):
         # Add four waypoints
         direction = arrow.direction
@@ -1935,7 +2065,6 @@ class Prim_MST_maker:
                 elif(self.t_x<=x4_c+DISC_H/2)and(self.t_x>=x4_c-DISC_H/2)and(self.t_y<=y4_c+DISC_V/2)and(self.t_y>=y4_c-DISC_V/2):
                     self.TARGET_CELL = np.array([self.current_r,self.wpnt_ind-1])
                     self.TARGET_FOUND = True
-
     def waypoint_final_generation(self,wpnts,wpnts_class,r,start_timestamp):
         # Waypoint, distance and time arrays created to describe the path
         # Includes graph drawing for tree and paths
@@ -2184,7 +2313,6 @@ class Prim_MST_maker:
         if(PRINT_HALF_SHIFTS):
             # Rotations
             self.rotations[r] = rotations
-
     def print_graph(self,nodes,parents,ax,r,time_start=0,time_end=np.Inf):
         # Graph printing
         # Plot spanning tree
@@ -2226,12 +2354,13 @@ class Prim_MST_maker:
                     plt.plot([self.wpnts_final_list[r][w-1][0],self.wpnts_final_list[r][w][0]],[self.wpnts_final_list[r][w-1][1],self.wpnts_final_list[r][w][1]],'-',linewidth=LINEWIDTH,color=PATH_COLOR)
                     plt.plot([self.wpnts_final_list[r][w-1][0],self.wpnts_final_list[r][w][0]],[self.wpnts_final_list[r][w-1][1],self.wpnts_final_list[r][w][1]],'.',markersize=S_MARKERIZE,color=PATH_COLOR)
         # Plot robot initial positions
-        plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.k',markersize=int(MARKERSIZE))
-        # plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.w',markersize=int(MARKERSIZE/3))
+        if(PRINT_RIP):
+            plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.k',markersize=int(MARKERSIZE))
+            plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.w',markersize=int(MARKERSIZE/3))
 
-        # Plot target position
-        plt.plot(self.t_x,self.t_y,'xk',markersize=int(MARKERSIZE))
-
+        if(PRINT_TARGET):
+            # Plot target position
+            plt.plot(self.t_x,self.t_y,'xk',markersize=int(MARKERSIZE))
     def prim_algorithm(self,graph,vertices):
         selected = np.zeros([vertices],dtype=bool)
         parents = np.zeros([vertices],dtype=int)
@@ -2314,7 +2443,6 @@ class generate_rand_grid:
         self.possible_indexes = np.argwhere(self.GRID == 0)
         np.random.shuffle(self.possible_indexes)
         self.es_flag = False
-
     def randomise_robots(self):
         if self.n_r < self.rows*self.cols:
             self.rip = self.possible_indexes[0:self.n_r]
@@ -2323,7 +2451,6 @@ class generate_rand_grid:
             self.GRID[val1, val2] = 2
         else:
             print("MADNESS! Why do you have so many robots?")
-
     def randomise_obs(self):
         if self.obs < (self.rows*self.cols-self.n_r):
             indices = self.possible_indexes[self.n_r:self.n_r+self.obs]
@@ -2332,7 +2459,6 @@ class generate_rand_grid:
             self.GRID[val1, val2] = 1
         else:
             print("MADNESS! Why so many obstacles?")
-
     def flag_enclosed_space(self):
         # Note that DARP re-does this, so co-ordinate them because enclosed_space_check is an expensive process
         ES = enclosed_space_check(
@@ -2346,23 +2472,26 @@ class generate_grid:
         self.rows = math.ceil(vert/(DISC_V*2))
         self.cols = math.ceil(hor/(DISC_H*2))
         self.GRID = np.zeros([self.rows, self.cols], dtype=int)
-        # self.possible_indexes = np.argwhere(self.GRID == 0)
-        # np.random.shuffle(self.possible_indexes)
-    def set_robots(self,n_r,coords):
+        self.horizontal = 2*DISC_H*self.cols 
+        self.vertical = 2*DISC_V*self.rows
+    def set_robots(self, n_r, coords):
         # Function not recently tested - might not work
         self.n_r =  n_r # number of robots
         self.rip_cont = coords 
         self.rip_sml = np.zeros([len(coords),2],dtype=int)
         self.rip = np.zeros([len(coords),2],dtype=int)
         for r in range(self.n_r):
-            rip = self.rip_cont[r]
+            # rip = self.rip_cont[r]
             # small cell position and large cell position
             self.rip_sml[r][0] = math.floor(self.rip_cont[r][0]/DISC_V) # row
             self.rip_sml[r][1] = math.floor(self.rip_cont[r][1]/DISC_H) # col
             self.rip[r][0] = math.floor(self.rip_cont[r][0]/(DISC_V*2)) # row
             self.rip[r][1] = math.floor(self.rip_cont[r][1]/(DISC_H*2)) # col
             self.GRID[self.rip[r][0]][self.rip[r][1]] = 2
-    def set_obs(self,obs_coords):
+            # Adjust rip_cont to centre cell
+            self.rip_cont[r][0] = (self.rip_sml[r][0]+0.5)*DISC_V # vertical
+            self.rip_cont[r][1] = (self.rip_sml[r][1]+0.5)*DISC_H # horizontal
+    def set_obs(self, obs_coords):
         for obs in obs_coords:
             if np.shape(obs) == (2,):
                 self.GRID[self.rows - obs[0] - 1][obs[1]] = 1
@@ -2374,7 +2503,9 @@ class generate_grid:
                 for row in range(row_min,row_max+1):
                     for col in range(col_min,col_max+1):
                         self.GRID[row][col] = 1
-    def randomise_robots(self,n_r):
+    def set_target(self, targ_coord):
+        self.tp_cont = np.array(targ_coord,dtype=float)
+    def randomise_robots(self, n_r):
         possible_indexes = np.argwhere(self.GRID == 0)
         np.random.shuffle(possible_indexes)
         self.n_r = n_r
@@ -2395,7 +2526,7 @@ class generate_grid:
             self.rip_sml[r][1] = self.rip[r][1]*2
             self.rip_cont[r][0] = (self.rip_sml[r][0]+0.5)*DISC_V # vertical
             self.rip_cont[r][1] = (self.rip_sml[r][1]+0.5)*DISC_H # horizontal
-    def randomise_obs(self,obs_perc):
+    def randomise_obs(self, obs_perc):
         possible_indexes = np.argwhere(self.GRID == 0)
         np.random.shuffle(possible_indexes)
         self.obs = math.floor(self.rows*self.cols*obs_perc/100)
@@ -2407,62 +2538,130 @@ class generate_grid:
             self.GRID[val1, val2] = 1
         else:
             print("MADNESS! Why so many obstacles? More than 75%% seems a bit crazy.")
-    def set_target(self,targ_coord):
-        self.tp_cont = np.array(targ_coord,dtype=float)
+    def randomise_target(self):
+        # Target position from top left corner (gets converted to bottom left)
+        possible_indexes = np.argwhere(self.GRID == 0)
+        np.random.shuffle(possible_indexes)
+        self.tp_cont = possible_indexes[0]
+        self.tp_cont[0] = (self.tp_cont[0]+random.random())*2*DISC_V  # vertical
+        self.tp_cont[1] = (self.tp_cont[1]+random.random())*2*DISC_H # horizontal
 
 if __name__ == "__main__":
     # Ensures it prints entire arrays when logging instead of going [1 1 1 ... 2 2 2]
     np.set_printoptions(threshold=np.inf)
-
-## RUN AN INDIVIDUAL CASE -> CONTINUOUS SPACE##
-    # Establish Environment Size - Chooses max horizontal and vertical dimensions and create rectangle
-    horizontal = 15312 # m
-    vertical = 7606 # m
-
+    
+    if(EXAMPLE):
+        if(EX_TYPE==0):
+            horizontal = 15312 # m
+            vertical = 7606 # m
+        elif(EX_TYPE==1):
+            horizontal = 11496 # m
+            vertical = 5468 # m
+        elif(EX_TYPE==2):
+            horizontal = 15849 # m
+            vertical = 7555 # m
+        elif(EX_TYPE==3):
+            horizontal = 3347 # m
+            vertical = 1594 #
+    else:
+        horizontal = DISC_H*20
+        vertical = DISC_V*20
     # Generate environment grid
     GG = generate_grid(horizontal,vertical)
     
     n_r = 3
-    # obs_perc = 0
-     
-    # GG.randomise_obs(obs_perc)
-    GG.set_target([2000,2000]) # (vert,hor) from top left
-    GG.set_obs([[41,0],[40,0],[39,0],[38,0],[37,0],[36,0],[35,0],[34,0],[33,0],[32,0],[31,0],[30,0],[0,0],
-                [41,1],[40,1],[39,1],[38,1],[37,1],[36,1],[35,1],[34,1],[33,1],[32,1],[31,1],[30,1],[0,1],[1,1],[2,1],
-                [41,2],[40,2],[39,2],[38,2],[37,2],[36,2],[35,2],[34,2],[33,2],[32,2],[31,2],[30,2],[29,2],[25,2],[0,2],[1,2],[2,2],
-                [41,3],[40,3],[39,3],[37,3],[36,3],[35,3],[0,3],[1,3],
-                [41,4],[40,4],[39,4],[0,4],[1,4],
-                [41,5],[0,5],
-                [41,6],[32,6],[31,6],
-                [41,7],[32,7],[31,7],
-                [34,8],[33,8],[32,8],[31,8],
-                [41,12],[40,12],
-                [41,13],[40,13],
-                [0,14],
-                [0,15],[1,15],[42,15],
-                [41,17],[32,17],
-                [41,18],
-                [40,22],
-                [[42,0],[42,84]],
-                [[42,85],[0,85]]])
-    GG.set_obs([[32,18],[33,18],[[42,19],[33,20]],[[41,21],[35,21]],[[40,22],[38,22]],[36,22],[27,22]])
-    GG.set_obs([[[41,33],[36,38]],[[35,31],[31,34]],[39,30],[39,32],[35,35],[36,32],[36,31],[[38,29],[37,32]],[41,39],[40,39],[[41,40],[38,43]],[[37,41],[34,43]],[[33,41],[31,42]],[[41,38],[41,36]],[36,45],[32,43],[31,43],[37,45],[[30,40],[31,41]],[[29,33],[32,35]],[[27,34],[28,35]],[[26,30],[33,30]],[26,31],
-                [32,36],[33,35],[26,31],[27,31],[39,31],[34,30],[33,29],[29,24],[27,22],[25,20],[32,40],[[28,29],[32,29]],[[29,28],[32,28]],[[28,27],[31,27]],[[27,26],[30,26]],[[27,25],[29,25]],[[25,24],[28,24]],[[25,23],[27,23]],[25,22],[26,22],[[23,20],[24,21]],[25,21],[22,20],[22,19],[[36,44],[39,44]],[26,21]])
-    GG.set_obs([[[41,48],[40,49]],[[37,47],[39,48]],[40,47],[39,49],[[41,50],[39,50]]])
-    GG.set_obs([[[41,51],[35,56]],[33,51],[34,51],[34,52],[[31,54],[34,55]],[34,56],[[30,55],[31,56]],[[36,57],[41,58]],[[38,59],[39,60]],[40,59],[36,59],[35,59]])
-    GG.set_obs([[[41,61],[41,65]],[40,63],[40,64],[40,65],[41,69],[41,70],[41,73],[41,74],[41,79],[16,84],[17,84],[0,46],[0,45],[1,46]])
-    GG.set_obs([[36,65],[33,64],[34,64],[31,68],[33,72],[35,74],[[27,63],[32,64]],[[30,65],[35,67]],[[32,68],[33,71]],[[34,70],[34,72]],
-                [[35,71],[36,73]],[30,62],[31,62],[35,64]]) # [[,],[,]]
-    GG.set_obs([[[33,81],[34,84]],[34,80],[36,83],[[35,82],[35,84]]])
-    GG.set_obs([[20,73],[[16,71],[16,73]],[[32,82],[32,84]],[32,79],[32,78],[33,78],[31,75],[31,76],[25,71],[[27,78],[31,84]],[[25,72],[26,83]],[[27,75],[30,77]],[[23,70],[24,78]],[24,79],[24,80],[[19,74],[22,76]],[[17,72],[18,75]],[[15,72],[15,73]],[[13,70],[14,71]],[19,73],[21,73],[22,73],[77,20],[77,21],[77,22],[14,72],[15,71]])
-    GG.set_obs([[21,57],[22,52],[19,49],[20,49],[15,51],[13,51],[14,44],[12,40],[12,47],[12,49],[12,50],[11,30],
-                [11,45],[11,46],[11,47],[10,29],[8,38],[7,27],[[23,59],[24,61]],[[21,58],[22,60]],[[20,55],[20,59]],
-                [[18,54],[19,57]],[[19,50],[21,52]],[[18,47],[18,53]],[[17,47],[17,56]],[[16,51],[16,53]],
-                [[13,47],[16,50]],[[14,45],[15,46]],[[12,41],[13,46]],[[14,40],[15,43]],[[13,32],[13,34]],
-                [[11,32],[12,37]],[[10,38],[11,42]],[[9,38],[9,40]],[[9,36],[10,37]],[[8,30],[10,35]],
-                [[8,25],[9,29]],[[5,28],[7,29]],[7,33],[[5,30],[7,32]],[11,29],[13,40],[19,47],[19,48],[22,51],[16,40],[16,41]])
-    GG.randomise_robots(n_r)
+
+    # GG.set_target([500,500])
+
+    # MOUNTAINOUS ENVIRONMENT
+    if(EXAMPLE):
+        if((EX_TYPE==0)and(OBS==True)):
+            # Sony RX1R II & Strix
+            GG.set_target([2000,2000]) # (vert,hor) from top left
+            GG.set_obs([[41,0],[40,0],[39,0],[38,0],[37,0],[36,0],[35,0],[34,0],[33,0],[32,0],[31,0],[30,0],[0,0],
+                        [41,1],[40,1],[39,1],[38,1],[37,1],[36,1],[35,1],[34,1],[33,1],[32,1],[31,1],[30,1],[0,1],[1,1],[2,1],
+                        [41,2],[40,2],[39,2],[38,2],[37,2],[36,2],[35,2],[34,2],[33,2],[32,2],[31,2],[30,2],[29,2],[25,2],[0,2],[1,2],[2,2],
+                        [41,3],[40,3],[39,3],[37,3],[36,3],[35,3],[0,3],[1,3],
+                        [41,4],[40,4],[39,4],[36,4],[0,4],[1,4],
+                        [41,5],[0,5],
+                        [41,6],[32,6],[31,6],
+                        [41,7],[32,7],[31,7],
+                        [34,8],[33,8],[32,8],[31,8],
+                        [41,12],[40,12],
+                        [41,13],[40,13],
+                        [0,14],
+                        [0,15],[1,15],[42,15],
+                        [41,17],[32,17],
+                        [41,18],
+                        [40,22],
+                        [[42,0],[42,84]],
+                        [[42,85],[0,85]]])
+            GG.set_obs([[32,18],[33,18],[[42,19],[33,20]],[[41,21],[35,21]],[[40,22],[38,22]],[36,22],[27,22]])
+            GG.set_obs([[[41,33],[36,38]],[[35,31],[31,34]],[39,30],[39,32],[35,35],[36,32],[36,31],[[38,29],[37,32]],[41,39],[40,39],[[41,40],[38,43]],[[37,41],[34,43]],[[33,41],[31,42]],[[41,38],[41,36]],[36,45],[32,43],[31,43],[37,45],[[30,40],[31,41]],[[29,33],[32,35]],[[27,34],[28,35]],[[26,30],[33,30]],[26,31],
+                        [32,36],[33,35],[26,31],[27,31],[39,31],[34,30],[33,29],[29,24],[27,22],[25,20],[32,40],[[28,29],[32,29]],[[29,28],[32,28]],[[28,27],[31,27]],[[27,26],[30,26]],[[27,25],[29,25]],[[25,24],[28,24]],[[25,23],[27,23]],[25,22],[26,22],[[23,20],[24,21]],[25,21],[22,20],[22,19],[[36,44],[39,44]],[26,21]])
+            GG.set_obs([[[41,48],[40,49]],[[37,47],[39,48]],[40,47],[39,49],[[41,50],[39,50]]])
+            GG.set_obs([[[41,51],[35,56]],[33,51],[34,51],[34,52],[[31,54],[34,55]],[34,56],[[30,55],[31,56]],[[36,57],[41,58]],[[38,59],[39,60]],[40,59],[36,59],[35,59]])
+            GG.set_obs([[[41,61],[41,65]],[40,63],[40,64],[40,65],[41,69],[41,70],[41,73],[41,74],[41,79],[16,84],[17,84],[0,46],[0,45],[1,46]])
+            GG.set_obs([[36,65],[33,64],[34,64],[31,68],[33,72],[35,74],[[27,63],[32,64]],[[30,65],[35,67]],[[32,68],[33,71]],[[34,70],[34,72]],
+                        [[35,71],[36,73]],[30,62],[31,62],[35,64]]) # [[,],[,]]
+            GG.set_obs([[[33,81],[34,84]],[34,80],[36,83],[[35,82],[35,84]]])
+            GG.set_obs([[20,73],[[16,71],[16,73]],[[32,82],[32,84]],[32,79],[32,78],[33,78],[31,75],[31,76],[25,71],[[27,78],[31,84]],[[25,72],[26,83]],[[27,75],[30,77]],[[23,70],[24,78]],[24,79],[24,80],[[19,74],[22,76]],[[17,72],[18,75]],[[15,72],[15,73]],[[13,70],[14,71]],[19,73],[21,73],[22,73],[77,20],[77,21],[77,22],[14,72],[15,71]])
+            GG.set_obs([[21,57],[22,52],[19,49],[20,49],[15,51],[13,51],[14,44],[12,40],[12,47],[12,49],[12,50],[11,30],
+                        [11,45],[11,46],[11,47],[10,29],[8,38],[7,27],[[23,59],[24,61]],[[21,58],[22,60]],[[20,55],[20,59]],
+                        [[18,54],[19,57]],[[19,50],[21,52]],[[18,47],[18,53]],[[17,47],[17,56]],[[16,51],[16,53]],
+                        [[13,47],[16,50]],[[14,45],[15,46]],[[12,41],[13,46]],[[14,40],[15,43]],[[13,32],[13,34]],
+                        [[11,32],[12,37]],[[10,38],[11,42]],[[9,38],[9,40]],[[9,36],[10,37]],[[8,30],[10,35]],
+                        [[8,25],[9,29]],[[5,28],[7,29]],[7,33],[[5,30],[7,32]],[11,29],[13,40],[19,47],[19,48],[22,51],[16,40],[16,41]])
+            GG.set_obs([[1,14],[1,45],[10,43],[10,45],[16,74],[18,46],[20,77],[21,77],[25,70],[27,72],[32,80],[32,81],
+                        [24,22],[26,25],[19,58],[30,31],[33,50],[33,63],[34,50],[35,70],[38,50],[39,29],[40,32],[37,22],
+                        [33,17],[22,57],[22,77],[28,23],[34,18],[3,1],[12,39],[0,22],[21,0]])
+        elif((EX_TYPE==1)and(OBS==True)):
+            # Obstacles for later removal
+            # GG.set_obs([[25,2]])
+            # GG.set_obs([[18,46]])
+            # GG.set_obs([[[9,42],[9,43]]])
+            # Lesotho border obstacles - overestimated
+            GG.set_obs([[[0,0],[24,1]],[[0,2],[23,15]],[[0,16],[22,17]],[[0,18],[3,30]],[[4,18],[21,18]],
+                        [[4,19],[19,19]],[[4,20],[13,22]],[[4,23],[8,26]],[[14,20],[15,20]],[14,21],[[9,23],[11,23]],
+                        [[9,24],[9,25]],[10,24],[[4,28],[4,29]],[[4,27],[6,27]],[5,28]])
+            # Obstacles - underestimated
+            GG.set_obs([[[18,36],[18,45]],[18,47],[[17,36],[17,45]],[17,47]])
+            GG.set_obs([[30,0],[[29,1],[30,1]],[[26,2],[30,2]],[[25,3],[30,8]],[[27,9],[30,12]],[[28,13],[30,13]]])
+            GG.set_obs([[0,33],[4,37],[4,38],[6,40],[[4,39],[5,40]],[[4,41],[7,41]],[[0,34],[3,41]],
+                        [[0,44],[8,64]],[[9,46],[10,64]],[11,48],[[11,49],[15,64]],[[16,48],[18,64]],[13,44],
+                        [[10,41],[13,43]],[[14,41],[16,45]],[14,40],[15,40],[15,39],[[16,36],[16,40]],[11,26],
+                        [[12,25],[13,26]],[[14,24],[15,27]],[15,28],[16,28],[17,22],[18,22],[[16,23],[19,27]],
+                        [21,29],[22,29],[24,33],[24,34],[26,31],[26,29],[26,18],[28,20],[30,16],[[27,17],[30,19]],
+                        [[21,45],[24,46]],[[29,20],[30,64]],[[27,29],[28,31]],[[20,23],[28,28]],[[19,47],[24,64]],
+                        [[19,35],[24,44]],[[25,32],[28,64]],[[0,42],[8,43]]])
+        elif((EX_TYPE==2)and(OBS==True)):
+            # GROUND ENVIRONMENT
+            GG.set_obs([[[12,0],[31,8]],[[16,9],[31,9]],[[25,10],[31,14]],[23,10],[24,10],[31,15],[31,16],
+                        [[24,13],[24,22]],[[25,15],[25,17]],[26,15],[25,20],[25,21],[[4,38],[8,44]],[[3,39],[3,44]],[[5,45],[6,45]]])
+            GG.set_obs([[[32,0],[32,67]],[[0,67],[31,67]]])
+        elif((EX_TYPE==3)and(OBS==True)):
+            GG.set_obs([[[0,0],[6,0]],[[0,1],[6,1]],[0,2],[6,2],[5,2]])
+    else:
+        obs_perc = 15
+        GG.randomise_obs(obs_perc)
+        # GG.set_target([500,500])
+        GG.randomise_robots(n_r)
+        GG.randomise_target()
     
+    # GG.randomise_robots(n_r)
+    
+    # Clustered Robots Example
+    # Example 1
+    # GG.set_robots(3,[[4000,5400],[4000,5700],[4000,6000]])
+    # Example 0
+    # GG.set_robots(n_r,[[7000,11600],[7000,12100],[7000,12400],[7000,12700],[7000,13000]])
+    # Example 2
+    # GG.set_robots(n_r,[[3000,2500],[3000,2800],[3200,2500],[3200,2800]])  
+    # Example 3
+    # GG.set_robots(n_r,[[600,500],[700,500]])
+
+    # GG.randomise_target()
+
     # Other parameters
     Imp = False
     maxIter = 10000

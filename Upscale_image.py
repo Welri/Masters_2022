@@ -27,10 +27,27 @@ def upscale_image(filename,vertical,horizontal,show_images = False):
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-filename = "Example_environments/obstacles02.png"
-vert = 7606
-hor = 15312
-upscale_image(filename,vert,hor,show_images=False)
+# # MOUNTAINOUS_LOW
+# filename = "Example_environments/spitskop_sat.png"
+# horizontal = 15312 # m
+# vertical = 7606 # m
+
+# MOUNTAINOUS HIGH
+# filename = "Example_environments/MC_obs_black.png"
+# horizontal = 11496 # m
+# vertical = 5468 #
+
+# GROUND
+# filename = "Example_environments/Aberdeen_obstacles.png"
+# horizontal = 15849 # m
+# vertical = 7555 # m
+
+# MARINE
+filename = "Example_environments/Jbay_obs.png"
+horizontal = 3347 # m
+vertical = 1594 #
+
+upscale_image(filename,vertical,horizontal,show_images=False)
 
 # im = image.imread("test.png")
 # shape = np.shape(im)

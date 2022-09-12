@@ -211,13 +211,19 @@ class target_case_checker_MST:
         FILE.close()
     def rerun_MST(self, file_log = "MAIN_LOGGING.txt", show_grid=False,distance_measure = 0,recompile=True,corners = 0):
         # Set general style constants
+        DPM.PRINT_COLOURS = False
         DPM.PRINT_DARP = True
-        DPM.PRINT_TREE = False
+        DPM.PRINT_TREE = True
+        DPM.TREE_COLOR = 'k'
         DPM.PATH_COLOR = 'k'
         DPM.TARGET_FINDING = self.TARGET_FINDING
+        DPM.DARP_FIGURE_TITLE = "Environment Grid"
+        DPM.FIGURE_TITLE = "DARP Results with Spanning Tree"
 
         if(corners==0):
             DPM.PRINT_PATH = False
+            DPM.PRINT_HALF_SHIFTS = False
+            DPM.PRINT_DYNAMIC_CONSTRAINTS = False
         elif(corners==1):
             DPM.PRINT_PATH = True
             DPM.PRINT_HALF_SHIFTS = False
@@ -317,13 +323,14 @@ class target_case_checker_MST:
 
 if __name__ == "__main__":
     show_grid = True
+    # dist_meas = 0 # 0,1,2 - Euclidean, Manhattan, GeodisicManhattan
     # TCC_DARP = target_case_checker_DARP()
-    # TCC_DARP.get_data("TARGET_CASES/Case01.txt")
-    # TCC_DARP.rerun_DARP(show_grid=show_grid,distance_measure=2,recompile=True)
+    # TCC_DARP.get_data("TARGET_CASES/DARP00_A.txt")
+    # TCC_DARP.rerun_DARP(show_grid=show_grid,distance_measure=dist_meas,recompile=True)
     
     TCC = target_case_checker_MST()
-    TCC.get_data("TARGET_CASES/Case01.txt")
-    TCC.rerun_MST(show_grid=show_grid,distance_measure=2,recompile=True,corners=0) # Distance measure shouldn't have an effect
+    TCC.get_data("TARGET_CASES/Toy_Problem.txt")
+    TCC.rerun_MST(show_grid=show_grid,distance_measure=2,recompile=True,corners=0) # Distance measure shouldn't have an effect - too lazy to remove it
 
     if (show_grid == True):
         plt.show()
