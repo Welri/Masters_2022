@@ -211,14 +211,15 @@ class target_case_checker_MST:
         FILE.close()
     def rerun_MST(self, file_log = "MAIN_LOGGING.txt", show_grid=False,distance_measure = 0,recompile=True,corners = 0):
         # Set general style constants
-        DPM.PRINT_COLOURS = False
+        DPM.FIGSIZE = 7
+        DPM.PRINT_COLOURS = True
         DPM.PRINT_DARP = True
         DPM.PRINT_TREE = True
-        DPM.TREE_COLOR = 'k'
+        DPM.TREE_COLOR = 'w'
         DPM.PATH_COLOR = 'k'
-        DPM.TARGET_FINDING = self.TARGET_FINDING
+        DPM.TARGET_FINDING = False #self.TARGET_FINDING
         DPM.DARP_FIGURE_TITLE = "Environment Grid"
-        DPM.FIGURE_TITLE = "DARP Results with Spanning Tree"
+        DPM.FIGURE_TITLE = "DARP Results with Dynamic Constraints"
 
         if(corners==0):
             DPM.PRINT_PATH = False
@@ -330,7 +331,7 @@ if __name__ == "__main__":
     
     TCC = target_case_checker_MST()
     TCC.get_data("TARGET_CASES/Toy_Problem.txt")
-    TCC.rerun_MST(show_grid=show_grid,distance_measure=2,recompile=True,corners=0) # Distance measure shouldn't have an effect - too lazy to remove it
+    TCC.rerun_MST(show_grid=show_grid,distance_measure=2,recompile=True,corners=3) # Distance measure shouldn't have an effect - too lazy to remove it
 
     if (show_grid == True):
         plt.show()

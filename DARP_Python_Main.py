@@ -31,7 +31,7 @@ PRINT_COLOURS = True
 PRINT_TREE = False
 PRINT_PATH = True
 PRINT_RIP = True
-PRINT_TARGET = True
+PRINT_TARGET = False
 # Parameters for specific examples
 EXAMPLE = False # Is an example environment currently active
 if(EXAMPLE):
@@ -56,7 +56,7 @@ MARKERSIZE=LINEWIDTH*12
 TICK_SPACING = 1
 DARP_FIGURE_TITLE = "DARP Results"
 FIGURE_TITLE = "Champaigne Castle with Removed Obstacles to Remove Enclosed Spaces"
-TARGET_FINDING = True # Does path truncation and target printing
+TARGET_FINDING = False # Does path truncation and target printing
 JOIN_REGIONS_FOR_REFUEL = False
 
 ################################ GENERAL PARAMETERS ################################################################################################
@@ -732,7 +732,7 @@ class Run_Algorithm:
         
         # Print STC paths on DARP plot
         if (self.show_grid == True):
-            if(TARGET_FINDING)and(PRINTS):
+            if((TARGET_FINDING)and(PRINTS)):
                 print("TARGET FINDING TIME: ", int(pMST.TIME_BREAK))
             for r in range(self.n_r):
                 if(TARGET_FINDING):
