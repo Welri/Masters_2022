@@ -23,20 +23,26 @@ import Peddle_Planner as pp
 # print("\n\n\n",__import__,"\n\n\n") 
 ################################ SETTINGS ################################################################################################################
 PRINTS = True
-FIGSIZE=12
+FIGSIZE = 8
 TREE_COLOR = 'w'
 PATH_COLOR = 'k'
-PRINT_DARP = True
+PRINT_DARP = False
+PRINT_TAKE_OFF = True
+PRINT_LANDING = True
+PRINT_SCHEDULE = False
 PRINT_COLOURS = True
 PRINT_TREE = False
 PRINT_PATH = True
 PRINT_RIP = True
 PRINT_TARGET = False
+VERTICAL_WEIGHT = 1
+HORIZONTAL_WEIGHT = 1
+
 # Parameters for specific examples
 EXAMPLE = False # Is an example environment currently active
 if(EXAMPLE):
-    EX_TYPE = 1 # 0:MOUNTAINOUS_LOW, 1:MOUNTAINOUS_HIGH, 2:GROUND, 3:MARINE
-    EX_EXECUTE_ALGORITHM = False # When true it removes enclosed space, runs DARP more than once and runs prim
+    EX_TYPE = 3 # 0:MOUNTAINOUS_LOW, 1:MOUNTAINOUS_HIGH, 2:GROUND, 3:MARINE
+    EX_EXECUTE_ALGORITHM = True # When true it removes enclosed space, runs DARP more than once and runs prim
     EX_MAP = "Obs" # "Sat" - Satellite, "Topo" - Topographic, "Obs" - Topographic with Obstacles
     OBS = True # Whether or not to print discrete obstacles
     IMPORT_IMG = False
@@ -50,9 +56,10 @@ PRINT_HALF_SHIFTS = True # CAREFUL when changing this
 PRINT_DYNAMIC_CONSTRAINTS = True # CAREFUL when changing this
 PRINT_CIRCLE_CENTRES = False # Only valid with dynamic constraints active
 
-LINEWIDTH = 1
-S_MARKERIZE = LINEWIDTH*4
-MARKERSIZE=LINEWIDTH*12
+LINEWIDTH = 0.7#0.5
+S_MARKERIZE = LINEWIDTH*3#4
+MARKERSIZE=LINEWIDTH*14#12
+TARGET_MARKERSIZE = LINEWIDTH*6
 TICK_SPACING = 1
 DARP_FIGURE_TITLE = "DARP Results"
 FIGURE_TITLE = "Champaigne Castle with Removed Obstacles to Remove Enclosed Spaces"
@@ -76,11 +83,14 @@ if(EXAMPLE):
         px_w = 8000
         px_h = 5320
         # Strix
+        V_climb_h = 0 # this means there is no VTOL
+        V_climb_c = 5.7 
+        V_sink = 4 # estimate
         V_cruise = 14
         V_stall = 7
         REFUEL_TIME = 100 # Seconds
         TAKE_OFF_HEIGHT = 300
-        FLIGHT_TIME = 10*60*60 # Seconds
+        FLIGHT_TIME = 9*60*60 # Seconds
     elif(EX_TYPE == 2):
         # Sony RX1R II
         focal_length = 35.0 # mm
@@ -92,6 +102,9 @@ if(EXAMPLE):
         px_w = 8000
         px_h = 5320
         # Wingtra
+        V_climb_h = 2.5
+        V_climb_c = 3
+        V_sink = 6
         V_cruise = 16 # m/s
         V_stall = 0 # Unknown
         REFUEL_TIME = 100 # Seconds
@@ -104,6 +117,12 @@ if(EXAMPLE):
         else:
             # Value for 2000m take-off
             FLIGHT_TIME = 42 * 60 # seconds
+        # # Strix
+        # V_cruise = 14
+        # V_stall = 7
+        # REFUEL_TIME = 100 # Seconds
+        # TAKE_OFF_HEIGHT = 750
+        # FLIGHT_TIME = 9*60*60 # Seconds
     elif(EX_TYPE==3):
         # Sony RX1R II
         focal_length = 35.0 # mm
@@ -115,6 +134,9 @@ if(EXAMPLE):
         px_w = 8000
         px_h = 5320
         # GULL
+        V_climb_h = 0 # No VTOL
+        V_climb_c = 5 # estimate
+        V_sink = 3 # estimate
         phi_max = 35
         V_cruise = 38
         V_stall = 0
@@ -132,6 +154,9 @@ else:
     px_w = 8000
     px_h = 5320
     # Wingtra
+    V_climb_h = 2.5
+    V_climb_c = 3
+    V_sink = 6
     V_cruise = 16 # m/s
     V_stall = 0 # Unknown
     REFUEL_TIME = 100 # Seconds
@@ -159,14 +184,29 @@ if(EXAMPLE):
         VEL = 14.0 # m/s
         Height = 158 # m above heighest point on ground
     elif(EX_TYPE==2):
+        # Wingtra
         VEL = 16.0 # m/s
+        # # Strix
+        # VEL = 14.0
         Height = 210.0 # m above heighest point on ground
     elif(EX_TYPE==3):
+        # GULL
         VEL = 19.0 # m/s
         Height = 205.0 # m above heighest point on ground
 else:
     VEL = 16.0 # m/s
     Height = 210.0 # m above heighest point on ground
+
+# Take-off time
+if(V_climb_h == 0):
+    Take_off = Height/V_climb_c # time to reach altitude
+else:
+    Take_off = 0.9*Height/V_climb_h + 0.1*Height/V_climb_c
+
+# Landing time
+Landing = Height/V_sink
+
+print("TAKE OFF: ",Take_off,"LANDING: ",Landing)
 
 # Sanity check for height
 if(Height>H_max):
@@ -208,9 +248,10 @@ DISC_V = DISC_H
 if(PRINTS):
     print("\nDISCRETIZATION SIZE: ", round(DISC_V,2), "X", round(DISC_H,2))
 r_max = DISC_V/2
+if(PRINTS):
+    print("MAXIMUM TURNING RADIUS: ", round(r_max,1), "\t\tCHOSEN TURNING RADIUS: ", round(r_min,1))
 if(r_max < r_min):
-    if(PRINTS):
-        print("ERROR: Invalid discretisation, r_max = ",round(r_max,2),", r_min = ",round(r_min,2))
+    print("ERROR: Invalid discretisation, r_max = ",round(r_max,2),", r_min = ",round(r_min,2))
 # v_max = math.sqrt( r_max * g_acc * math.tan(phi_max*math.pi/180) ) # m/s
 GSD_h = Height * 100.0 * (sensor_height/10.0) / ((focal_length/10.0) * float(px_h)) # cm/px
 GSD_w = Height * 100.0 * (sensor_width/10.0) / ((focal_length/10.0) * float(px_w)) # cm/px
@@ -221,7 +262,7 @@ ARC_L = (DISC_V/2.0 - r_min) + r_min*np.pi/2.0 + (DISC_H/2.0 - r_min) # two stra
 if(PRINTS):
     print("GSD: ",round(min(GSD_h,GSD_w),2),"Cross-track overlap: ", round(CT_Overlap,2),"\n")
 
-################################ CLASSES AND FUNCTIONS ################################################################################################
+################################ -- CLASSES -- ################################################################################################
 
 class algorithm_start:
     def __init__(self,recompile=True):
@@ -247,7 +288,7 @@ class algorithm_start:
 
 # Contains main DARP code, runs the DARP algorithm and runs PrimMST by calling the other class
 class Run_Algorithm:
-    def __init__(self, EnvironmentGrid, rip, dcells, Imp, show_grid=False,maxIter=10000,cc_vals=np.array([0.1,0.01,0.001,0.0001,0.00001]),rl_vals=np.array([0.01,0.001,0.0001,0.00001]),dist_meas=0, log_filename="MAIN_LOGGING.txt", log_active = False, target_filename = "TARGET_LOG.txt", target_active = False, refuels=0):
+    def __init__(self, EnvironmentGrid, rip, dcells, Imp, print_graphs=False,maxIter=10000,cc_vals=np.array([0.1,0.01,0.001,0.0001,0.00001]),rl_vals=np.array([0.01,0.001,0.0001,0.00001]),dist_meas=0, log_filename="MAIN_LOGGING.txt", log_active = False, target_filename = "TARGET_LOG.txt", target_active = False, refuels=0,ground_station=False):
         self.Grid = EnvironmentGrid
         self.maxIter = maxIter
         self.dcells = dcells
@@ -256,14 +297,14 @@ class Run_Algorithm:
         self.Imp = Imp
         self.rows = len(self.Grid)
         self.cols = len(self.Grid[0])
-        self.rip = np.argwhere(self.Grid == 2) # rip in correct order
+        self.rip = np.argwhere(self.Grid == 2) # rip in correct order - DARP algorithm runs with this order
         self.rip_temp = rip # rip in incorrect order - same as rip_sml and rip_cont
         self.n_r = len(self.rip) # This is the equivalent number of robots for case where there are refuels
         self.ArrayOfElements = np.zeros(self.n_r, dtype=int)  
         self.abort = False
         self.es_flag = False
         self.runs = 0
-        self.show_grid = show_grid
+        self.print_graphs = print_graphs
         self.DARP_success = False
         self.log_filename = log_filename
         self.log_active = log_active
@@ -272,11 +313,20 @@ class Run_Algorithm:
         self.total_iterations = 0
         self.distance_measure = dist_meas
         self.refuels = refuels # Number of refuels
+        self.ground_station = ground_station
         self.nr_og = (int)(self.n_r/(self.refuels+1)) # This is the original number of robots for the case where there are refuels
         # Link original robots with equivalent robots
         self.n_link = np.zeros(self.n_r,dtype=int)
         for r in range(self.n_r):
             self.n_link[r] = math.floor(r/(self.refuels+1))
+        transparency = 0.9
+        self.transp_link = np.ones(self.n_r)*transparency
+        for ref in range(self.refuels+1):
+            transp_temp = transparency*(1-0.2*ref)
+            for r_og in range(self.nr_og):
+                r = r_og*(self.refuels+1) + ref
+                self.transp_link[r] = transp_temp
+
         self.n_runs = np.zeros(self.n_r,dtype=int)
         val = 0
         for r in range(self.n_r):
@@ -292,10 +342,16 @@ class Run_Algorithm:
         self.tp_cont = tp_cont # Target initial position
         self.tp_cont[0] = self.vertical - tp_cont[0] # Make it from bottom left corner instead (done like this because environment dimension with grid overlay can be a bit different)
         self.tp_cont[1] = tp_cont[1]
+        if(PRINTS):
+            print("TARGET ACTUAL LOCATION: ",round(tp_cont[0],1),round(tp_cont[1],1))
         self.rip_cont = rip_cont # Robot Initial position - continuous
         self.rip_cont_temp = np.zeros([len(self.rip_cont),2])
         self.rip_sml = rip_sml # Robot Initial position - small cells
-        self.start_cont = start_cont # Refuelling start
+        if (self.ground_station == True):
+            self.start_cont = start_cont # Refuelling start
+            self.start_cont[0] = self.vertical - self.start_cont[0]
+        else:
+            self.start_cont = start_cont
 
         ind = np.zeros([self.n_r],dtype=int)
         rip_sml_temp = np.zeros([self.n_r,2],dtype=int)
@@ -316,7 +372,8 @@ class Run_Algorithm:
             self.rip_cont_temp[r][0] = rip_cnt_temp[r][0]
             self.rip_cont_temp[r][1] = rip_cnt_temp[r][1]
             self.rip_cont[r][0] = self.vertical - rip_cnt_temp[r][0]
-            self.rip_cont[r][1] = rip_cnt_temp[r][1]         
+            self.rip_cont[r][1] = rip_cnt_temp[r][1]  
+        self.reorder_ind = ind       
     def main(self):
         #  DARP SECTION
         timestart = time.time_ns()
@@ -338,7 +395,7 @@ class Run_Algorithm:
                     self.fairDiv = (self.rows*self.cols - self.obs)/self.n_r
                     self.AOEperc = np.abs((self.ArrayOfElements+1)-self.fairDiv)/self.fairDiv
                     self.maxDiscr = np.max(self.AOEperc)
-                    if (self.show_grid == True) and (PRINT_DARP==True):
+                    if (self.print_graphs == True) and (PRINT_DARP==True):
                         self.print_DARP_graph() # prints a graph for each iteration
                     self.runs += 1
                     self.total_iterations = self.total_iterations + self.iterations
@@ -368,12 +425,13 @@ class Run_Algorithm:
         self.time_DARP_total = time.time_ns() - timestart
         
         # Print DARP
-        if self.show_grid==True:
+        if self.print_graphs==True:
             self.cont_DARP_graph() # prints final graph
         if(EXAMPLE):
             if(EX_EXECUTE_ALGORITHM == False):
                 return
         # temporary for example
+        
         # PRIM MST SECTION
         timestart = time.time_ns()
         self.primMST()
@@ -415,7 +473,7 @@ class Run_Algorithm:
                 file_log.write(",")
                 file_log.write(str(self.time_prim))
                 file_log.write(",")
-                file_log.write(str(self.show_grid))
+                file_log.write(str(self.print_graphs))
                 file_log.write(",")
                 AOEstring = str(self.ArrayOfElements)
                 AOEstring = AOEstring.replace("\n", '')
@@ -492,7 +550,7 @@ class Run_Algorithm:
                 file_log.write(",")
                 file_log.write(str(self.time_prim))
                 file_log.write(",")
-                file_log.write(str(self.show_grid))
+                file_log.write(str(self.print_graphs))
                 file_log.write(",")
                 file_log.write("None")
                 file_log.write(",")
@@ -521,6 +579,21 @@ class Run_Algorithm:
             file_log = open(self.target_filename, "a")
             file_log.write("\n")
             # Constants for rerun (UAV and camera dependent)
+            if(self.ground_station == True):
+                # Refuel logging - need to indicate on target logger when using this
+                self.start_cont[0] = self.vertical - self.start_cont[0]
+                startstring=str(self.start_cont)
+                startstring = startstring.replace('\n', '')
+                startstring = startstring.replace('[', '')
+                startstring = startstring.replace(']', '')
+                file_log.write(startstring)
+                file_log.write("\n")
+                file_log.write(str(self.refuels))
+                file_log.write("\n")
+            file_log.write(str(Take_off))
+            file_log.write("\n")
+            file_log.write(str(Landing))
+            file_log.write("\n")
             file_log.write(str(REFUEL_TIME))
             file_log.write("\n")
             file_log.write(str(TAKE_OFF_HEIGHT))
@@ -615,18 +688,20 @@ class Run_Algorithm:
         self.Ilabel_final = Ilabel
 
         # Print DARP
-        if self.show_grid==True:
-            self.print_DARP_graph()
+        if self.print_graphs==True:
+            if(PRINT_DARP):
+                self.print_DARP_graph()
             self.cont_DARP_graph() # prints final graph
         
         # PRIM MST SECTION
         self.primMST()
     def primMST(self):
         # Run MST algorithm
-        pMST = Prim_MST_maker(self.A,self.n_r,self.rows,self.cols,self.rip,self.Ilabel_final,self.rip_cont,self.rip_sml,self.tp_cont,self.n_link,self.n_runs,self.refuels,self.nr_og,self.start_cont)
+        pMST = Prim_MST_maker(self.A,self.n_r,self.rows,self.cols,self.rip,self.Ilabel_final,self.rip_cont,self.rip_sml,self.tp_cont,self.n_link,self.refuels,self.start_cont,self.ground_station)
         self.schedule = np.zeros([self.n_r,6])
+        
         # Scheduling protocol
-        if(self.refuels > 0):
+        if(self.ground_station == True):
             r_append = 0 # The waypoint, time and distance arrays get appended in a different order, tracked here
             for run in range(self.refuels+1):
                 take_off_total = 0 # Accumulated take-off times          
@@ -723,17 +798,17 @@ class Run_Algorithm:
                                 # No refuel time
                                 self.schedule[r][5] = landing_time
                     r_append += 1 
-        elif(self.refuels == 0):
+        else:
             for r in range(self.n_r):
                 pMST.waypoint_final_generation(pMST.wpnts_cont_list[r],pMST.wpnts_class_list[r],r,0)
 
         if(PRINTS):
-            print("\nALLOWABLE FLIGHT TIME WITH FUEL CONSTRAINTS: ", FLIGHT_TIME )
+            print("\nALLOWABLE FLIGHT TIME [min]: ", FLIGHT_TIME/(60) )
         
-        # Print STC paths on DARP plot
-        if (self.show_grid == True):
+        # Print STC paths on DARP plot and TABULATE data
+        if (self.print_graphs == True):
             if((TARGET_FINDING)and(PRINTS)):
-                print("TARGET FINDING TIME: ", int(pMST.TIME_BREAK))
+                print("TARGET FINDING TIME [min]: ", round(pMST.TIME_BREAK/60,1))
             for r in range(self.n_r):
                 if(TARGET_FINDING):
                     pMST.print_graph(pMST.free_nodes_list[r],pMST.parents_list[r],self.ax,r,time_end=pMST.TIME_BREAK)
@@ -741,32 +816,41 @@ class Run_Algorithm:
                     pMST.print_graph(pMST.free_nodes_list[r],pMST.parents_list[r],self.ax,r)
         if(PRINT_DYNAMIC_CONSTRAINTS):   
             # Print relevant data in table
-            if (self.refuels > 0):
-                data = [["Robot","Refuel","OG Robot","Take-off","Flight","Wait","Landing","Total Time","Time Limit","Time Diff","Distance","Rotations"]]
-                for r in range(self.n_r):
-                    run = self.n_runs[r]
-                    r_og = self.n_link[r]
-                    take_off = pMST.TO_time[r]
-                    landing = pMST.LD_time[r]
-                    wait = self.schedule[r][3] - self.schedule[r][2]
-                    flight_time = pMST.time_totals[r] # This is still added to an array using original r value, not appended to a list like cumulative times etc.
-                    total_time = take_off + flight_time + wait + landing
-                    rot_ach = pMST.rotations[r]
-                    dist_ach = pMST.dist_totals[r]
-                    data.append([r,run,r_og,round(take_off,1),round(flight_time,1),round(wait,1),round(landing,1),round(total_time,1),round(FLIGHT_TIME,1),round(FLIGHT_TIME - total_time,1),round(dist_ach,1),round(rot_ach,0)])
-            else:
-                data = [["Robot","Total Time","Time Limit","Time Diff","Distance","Rotations"]]
-                for r in range(self.n_r):
-                    total_time = pMST.time_totals[pMST.r_append[r]]
-                    rot_ach = pMST.rotations[r]
-                    dist_ach = pMST.dist_totals[r]
-                    data.append([r,round(total_time,1),round(FLIGHT_TIME,1),round(FLIGHT_TIME - total_time,1),round(dist_ach,1),round(rot_ach,0)])
             if(PRINTS):
-                print(tabulate(data))
+                if (self.ground_station == True):
+                    # data = [["Robot","Refuel","Orig Robot","Take-off [min]","Flight [min]","Wait [min]","Landing [min]","Total Time [min]","Total Energy [min]","Time Limit [min]","Time Diff [min]","Distance [km]","Rotations"]]
+                    data_times = [["Robot","Refuel","Take-off [min]","Departure [min]","Flight [min]","Wait [min]","Approach [min]","Landing [min]","Distance [km]","Rotations"]]
+                    data_totals = [["Robot","Refuel","Total Time [min]","Total Energy [min]","Time Limit [min]","Time Excess [min]"]]
+                    for r in range(self.n_r):
+                        run = self.n_runs[r]
+                        r_og = self.n_link[r]
+                        take_off = pMST.TO_time[r]
+                        landing = pMST.LD_time[r]
+                        wait = self.schedule[r][3] - self.schedule[r][2]
+                        flight_time = pMST.time_totals[r] # This is still added to an array using original r value, not appended to a list like cumulative times etc.
+                        total_time = take_off + flight_time + wait + landing
+                        total_energy = 1.3*(take_off + wait + landing) + flight_time + pMST.rotations[r]*(ARC_L/VEL)*0.3 
+                        rot_ach = pMST.rotations[r]
+                        dist_ach = pMST.dist_totals[r]
+                        data_times.append([r_og, run,round(Take_off/60,1), round((take_off-Take_off)/60,1), round(flight_time/60,1), round(wait/60,1),round(Landing/60,1) , round((landing-Landing)/60,1), round(dist_ach/1000,1), round(rot_ach,0)])
+                        data_totals.append([r_og, run, round(total_time/60,1), round(total_energy/60,1), round(FLIGHT_TIME/60,1), round((FLIGHT_TIME - total_energy)/60,1)])
+                        # data.append([r,run,r_og,round(take_off/60,1),round(flight_time/60,1),round(wait/60,1),round(landing/60,1),round(total_time/60,1),round(total_energy/60,1),round(FLIGHT_TIME/60,1),round((FLIGHT_TIME - total_energy)/60,1),round(dist_ach/1000,1),round(rot_ach,0)])
+                        # print(tabulate(data))
+                    print(tabulate(data_times))
+                    print(tabulate(data_totals))
+                else:
+                    data = [["Robot","Total Time [min]","Total Energy [min]","Time Limit [min]","Time Excess [min]","Distance [km]","Rotations"]]
+                    for r in range(self.n_r):
+                        total_time = pMST.time_totals[pMST.r_append[r]]
+                        energy_time = pMST.time_totals[pMST.r_append[r]] + pMST.rotations[r]*(ARC_L/VEL)*0.3                    
+                        rot_ach = pMST.rotations[r]
+                        dist_ach = pMST.dist_totals[r]
+                        data.append([r,round(total_time/(60),1),round(energy_time/60,1),round(FLIGHT_TIME/(60),1),round((FLIGHT_TIME - energy_time)/(60),1),round(dist_ach/1000,1),int(rot_ach)])
+                    print(tabulate(data))
             
             # Print schedules in data table
-            if (self.refuels > 0):
-                data = [['Robot','Refuel','OG Robot','Start Time','After Take-off','After Flight','After Wait','After Landing','After Refuel']]
+            if ((self.ground_station == True)and(PRINTS)) :
+                data = [['Robot','Refuel','Orig Robot','Start Time','After Take-off','After Flight','After Wait','After Landing','After Refuel']]
                 for run in range(self.refuels+1):
                     for r_og in range(self.nr_og):
                         r = r_og*(self.refuels+1)+run
@@ -777,11 +861,10 @@ class Run_Algorithm:
                         for i in range(6):
                             l.append(round(self.schedule[r][i],1))
                         data.append(l)
-                if(PRINTS):
-                    print(tabulate(data))
-
+                print(tabulate(data))
+            
             # Print schedules graph
-            if (self.refuels > 0)and(print_graphs):
+            if (self.ground_station == True)and(self.print_graphs)and(PRINT_SCHEDULE):
                 plt.rc('font', size=12)
                 plt.rc('axes', titlesize=15)
                 fig,ax = plt.subplots(figsize=(12,1.5*self.nr_og))
@@ -790,19 +873,19 @@ class Run_Algorithm:
                 ax.set_xticks(np.linspace(0,np.max(self.schedule),(15-1)*5+1),minor=True)
                 ax.invert_yaxis()
                 ax.set_ylabel("Robot")
-                ax.set_xlabel("Time in seconds")
+                ax.set_xlabel("Time [s]")
                 ax.set_title("Flight Schedule")
-                legend_elements = [ Line2D([0], [0], color="C0",alpha=0.5, lw=4, label='Taking off'),
-                                    Line2D([0], [0], color="C1",alpha=0.5, lw=4, label='Flying'),
-                                    Line2D([0], [0], color="C2",alpha=0.5, lw=4, label='Waiting'),
-                                    Line2D([0], [0], color="C3",alpha=0.5, lw=4, label='Landing'),
-                                    Line2D([0], [0], color="C4",alpha=0.5, lw=4, label='Refuelling')]
-                
+                legend_elements = [ Line2D([0], [0], color="C0", alpha=0.5, lw=4, label='Take-off and Departure'),
+                                    Line2D([0], [0], color="C1", alpha=0.5, lw=4, label='Flight'),
+                                    Line2D([0], [0], color="C2", alpha=0.5, lw=4, label='Wait'),
+                                    Line2D([0], [0], color="C3", alpha=0.5, lw=4, label='Approach and Landing'),
+                                    Line2D([0], [0], color="C4", alpha=0.5, lw=4, label='Refueling') ]
                 plt.tight_layout()
                 t_colours = ["C0","C1","C2","C3","C4"]
                 # Plot target finding time
-                plt.plot(np.array([pMST.TIME_BREAK,pMST.TIME_BREAK]),np.array([-0.6,self.nr_og-0.4]),'k',linestyle='dashed',linewidth=1)
-                plt.plot(pMST.TIME_BREAK,self.n_link[pMST.TARGET_CELL[0]],'xk',markersize = int(MARKERSIZE))
+                if(TARGET_FINDING):
+                    plt.plot(np.array([pMST.TIME_BREAK,pMST.TIME_BREAK]),np.array([-0.6,self.nr_og-0.4]),'k',linestyle='dashed',linewidth=1)
+                    plt.plot(pMST.TIME_BREAK,self.n_link[pMST.TARGET_CELL[0]],'xk',markersize = int(MARKERSIZE))
                 # Plot schedules
                 for r_og in range(self.nr_og):
                     # Plot per robot
@@ -1003,7 +1086,10 @@ class Run_Algorithm:
                     plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=1 )
                 else:
                     if(JOIN_REGIONS_FOR_REFUEL):
-                        plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]], alpha=0.8)
+                        if(PRINT_COLOURS):
+                            plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]], alpha=self.transp_link[self.A[j][i]])
+                        else:
+                            plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], 'w', alpha=0.8)
                     else:
                         if(PRINT_COLOURS):
                             plt.fill( [x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]], alpha=0.8)
@@ -1110,7 +1196,10 @@ class Run_Algorithm:
                     plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], "k", alpha=Object_transparency)
                 else:
                     if(JOIN_REGIONS_FOR_REFUEL):
-                        plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]],alpha=DARP_transparency)
+                        if(PRINT_COLOURS):
+                            plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.n_link[self.A[j][i]]] ,alpha=self.transp_link[self.A[j][i]])
+                        else:
+                            plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], 'w', alpha=DARP_transparency)
                     else:
                         if(PRINT_COLOURS):
                             plt.fill([x1, x1, x2, x2], [y1, y2, y2, y1], colour_assignments[self.A[j][i]],alpha=DARP_transparency)
@@ -1249,7 +1338,7 @@ class enclosed_space_check:
 
 # Contains main PrimMST code - run from "Run_Algorithm"
 class Prim_MST_maker:
-    def __init__(self,A,n_r,rows,cols,rip,Ilabel,rip_cont,rip_sml,tp_cont,n_link,n_runs,refuels,nr_og,start_cont):
+    def __init__(self,A,n_r,rows,cols,rip,Ilabel,rip_cont,rip_sml,tp_cont,n_link,refuels,start_cont,ground_station):
         self.A = A
         self.n_r = n_r
         self.rows = rows
@@ -1263,10 +1352,9 @@ class Prim_MST_maker:
         self.t_y = tp_cont[0]
         self.TARGET_FOUND = False
         self.n_link = n_link # Variable that links equivalent robots to original number of robots
-        self.n_runs = n_runs
-        self.nr_og = nr_og
         self.refuels = refuels
         self.start_cont = start_cont
+        self.ground_station = ground_station
         self.r_append = list()
 
         self.wpnts_final_list = list()
@@ -1311,9 +1399,9 @@ class Prim_MST_maker:
                         if len(neighbour_node_ind)>0:
                             # Add edge to graph - weight can be different for horizontal and vertical
                             if(classification=='H'):
-                                graph[node_ind][neighbour_node_ind[0][0]] = DISC_H # weights are just distance for now
+                                graph[node_ind][neighbour_node_ind[0][0]] = DISC_H*HORIZONTAL_WEIGHT # weights are just distance for now
                             elif(classification=='V'):
-                                graph[node_ind][neighbour_node_ind[0][0]] = DISC_V # weights are just distance for now
+                                graph[node_ind][neighbour_node_ind[0][0]] = DISC_V*VERTICAL_WEIGHT # weights are just distance for now
 
             # JAVA MST COMMENTED OUT - indented
                 # self.write_input(graph,vertices)
@@ -1367,7 +1455,7 @@ class Prim_MST_maker:
             self.wpnts_class_list.append(self.waypoint_class)
 
         # Shifting robot initial positions by half cell (if half shifts enabled)- p is found during waypoint generation
-        if(self.refuels > 0):
+        if(self.ground_station == True):
             self.head = np.zeros(len(self.rip_cont))
             # Take-off pathlengths and times
             self.TO_dist = np.zeros(len(self.rip_cont))
@@ -1375,11 +1463,12 @@ class Prim_MST_maker:
             # Landing pathlengths and times
             self.LD_dist = np.zeros(len(self.rip_cont))
             self.LD_time = np.zeros(len(self.rip_cont))
+        
         # Shift the robot starting position and caculate take off and landing times if refuelling is happening
         for r in range(self.n_r):
-            if(self.refuels > 0):
-                dx = self.wpnts_cont_list[r][self.p[r]][1] - self.rip[r][1] # x_shift - x_old
-                dy = self.wpnts_cont_list[r][self.p[r]][0] - self.rip[r][0] # y_shift - y_old
+            if(self.ground_station == True):
+                dx = int(self.wpnts_cont_list[r][self.p[r]][1] - self.rip_cont[r][1]) # x_shift - x_old
+                dy = int(self.wpnts_cont_list[r][self.p[r]][0] - self.rip_cont[r][0]) # y_shift - y_old
                 if(dy>0):
                     # Heading South
                     head = 270
@@ -1393,38 +1482,45 @@ class Prim_MST_maker:
                     # Heading East
                     head = 0
                 self.head[r] = head
-                ## Peddle planner - take-off
+                
+                ## Peddle planner - departure
                 PS = self.start_cont
                 PE = self.wpnts_cont_list[r][self.p[r]]
                 Head_start = 90*math.pi/180 # Start going North from landing strip
                 Head_end = head*math.pi/180 # Heading at the end (rip)
-                start = [PS,Head_start]
-                end = [PE,Head_end]
+                start = [[PS[1],PS[0]],Head_start]
+                end = [[PE[1],PE[0]],Head_end]
                 PP = pp.path_planner(start,end,r_min)
                 PP.shortest_path()
+                if (PRINT_TAKE_OFF):
+                    PP.plot_shortest_path()
                 self.TO_dist[r] = (PP.shortest_path).PathLen # Take-off distances
                 self.TO_time[r] = (PP.shortest_path).PathLen / VEL # Take-off times
-                ## Pedddle planner - landing
+                ## Add Take-off
+                self.TO_time[r] = self.TO_time[r] + Take_off
+
+                ## Pedddle planner - approach
                 PS = self.wpnts_cont_list[r][self.p[r]]
                 PE = self.start_cont
                 Head_start = head*math.pi/180 # Start at heading it ends circuit with
                 Head_end = 270*math.pi/180 # Landing going South to the landing strip
-                start = [PS,Head_start]
-                end = [PE,Head_end]
+                start = [[PS[1],PS[0]],Head_start]
+                end = [[PE[1],PE[0]],Head_end]
                 PP = pp.path_planner(start,end,r_min)
                 PP.shortest_path()
+                if (PRINT_LANDING):
+                    PP.plot_shortest_path()
                 self.LD_dist[r] = (PP.shortest_path).PathLen
                 self.LD_time[r] = (PP.shortest_path).PathLen / VEL
-                # TODO: Create schedules
-                # print((PP.shortest_path).PathLen)
-                # PP.plot_shortest_path('Shortest Path Landing',xaxis=2500)
-                # PP.plot_paths(separate_plots=False)
+                ## Add Landing
+                self.LD_time[r] = self.LD_time[r] + Landing
+
             self.rip_cont[r] = self.wpnts_cont_list[r][self.p[r]]
 
         # Shifting waypoints to start at robot position and making it closed loop
         if(TARGET_FINDING)and(PRINTS):
             # print("Robot:",self.TARGET_CELL[0]," Ind: ",self.TARGET_CELL[1]," Waypoint: ",self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]]," Target Location: ",self.t_y,self.t_x)
-            print(" Waypoint: ",self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][0],self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][1]," Target Location: ",self.t_y,self.t_x)
+            print("Waypoint: ",round(self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][0],1),round(self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][1],1)," Target Location: ",round(self.t_y,1),round(self.t_x,1))
         self.update_wpnts()  
     def update_wpnts(self):
         for r in range(self.n_r):
@@ -2078,15 +2174,7 @@ class Prim_MST_maker:
         time_break = False
         dist_tot = 0
         time_tot = 0
-        r_og = self.n_link[r] # Original robot
-        refuel_run = self.n_runs[r] # Which refuel run the robot is on
 
-        # Initialise time_tot to last time on the previous run - further offsets can only be added after the path lengths are known
-        # if(refuel_run == 0):
-        #     start_timestamp = 0
-        # elif(refuel_run > 0):
-        #     # The last element of the previous equivalent robot's time array would represent the total time taken by the same robot in the previous run
-        #     start_timestamp = self.time_cumulative_list[r-1][-1] 
         for w in range(len(wpnts)-1):
             x1 = wpnts[w][1]
             x2 = wpnts[w+1][1]
@@ -2353,14 +2441,15 @@ class Prim_MST_maker:
                 for w in range(1,len(self.wpnts_final_list[r])):
                     plt.plot([self.wpnts_final_list[r][w-1][0],self.wpnts_final_list[r][w][0]],[self.wpnts_final_list[r][w-1][1],self.wpnts_final_list[r][w][1]],'-',linewidth=LINEWIDTH,color=PATH_COLOR)
                     plt.plot([self.wpnts_final_list[r][w-1][0],self.wpnts_final_list[r][w][0]],[self.wpnts_final_list[r][w-1][1],self.wpnts_final_list[r][w][1]],'.',markersize=S_MARKERIZE,color=PATH_COLOR)
+        
         # Plot robot initial positions
         if(PRINT_RIP):
             plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.k',markersize=int(MARKERSIZE))
-            plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.w',markersize=int(MARKERSIZE/3))
+            plt.plot(self.rip_cont[r][1],self.rip_cont[r][0],'.w',markersize=int(MARKERSIZE/3),zorder=100)
 
         if(PRINT_TARGET):
             # Plot target position
-            plt.plot(self.t_x,self.t_y,'xk',markersize=int(MARKERSIZE))
+            plt.plot(self.t_x,self.t_y,'xk',markersize=int(TARGET_MARKERSIZE))
     def prim_algorithm(self,graph,vertices):
         selected = np.zeros([vertices],dtype=bool)
         parents = np.zeros([vertices],dtype=int)
@@ -2385,7 +2474,7 @@ class Prim_MST_maker:
             total_weight+=minimum
             edges += 1
         return(parents)
-
+    # def peddle_planner()
 # Prim Related
 class mst_node:
     def __init__(self,i,x,y):
@@ -2564,12 +2653,12 @@ if __name__ == "__main__":
             horizontal = 3347 # m
             vertical = 1594 #
     else:
-        horizontal = DISC_H*20
-        vertical = DISC_V*20
+        horizontal = DISC_H*30
+        vertical = DISC_V*30
     # Generate environment grid
     GG = generate_grid(horizontal,vertical)
     
-    n_r = 3
+    n_r = 4
 
     # GG.set_target([500,500])
 
@@ -2660,7 +2749,7 @@ if __name__ == "__main__":
     # Example 3
     # GG.set_robots(n_r,[[600,500],[700,500]])
 
-    # GG.randomise_target()
+    GG.randomise_target()
 
     # Other parameters
     Imp = False

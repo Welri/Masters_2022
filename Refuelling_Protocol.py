@@ -44,7 +44,7 @@ class refuelling:
         # Does not exclude obstacles that get set when robot initial positions are determined
         cells_per_robot = ( self.rows*self.cols*4 - self.obs*4  ) / n_r + SAFETY_FACTOR
         # calculate path lengths predicted
-        dist = max(MAIN.ARC_L,MAIN.DISC_H,MAIN.DISC_V) * cells_per_robot # max distance each robot should fly
+        dist = np.max([MAIN.ARC_L*1.3,MAIN.DISC_H,MAIN.DISC_V]) * cells_per_robot # max distance each robot should fly
         time = dist / MAIN.VEL # time each robot should fly
         flights_req = time / MAIN.FLIGHT_TIME # fights required per robot
         refuels = math.ceil(flights_req) - 1
@@ -165,59 +165,60 @@ class refuelling:
         self.targ_cont = np.zeros(2)
         self.targ_cont[0] = (self.targ_discrete[0]+0.5)*MAIN.DISC_V*2
         self.targ_cont[1] = (self.targ_discrete[1]+0.5)*MAIN.DISC_H*2
-            
-# Ensures it prints entire arrays when logging instead of going [1 1 1 ... 2 2 2]
-np.set_printoptions(threshold=np.inf)
 
-# What graphs should it print
-MAIN.PRINT_DARP = True
-MAIN.PRINT_TREE = False
-MAIN.PRINT_PATH = True
-MAIN.PRINT_CIRCLE_CENTRES = False
-MAIN.JOIN_REGIONS_FOR_REFUEL = True
-MAIN.PRINT_TARGET = True
+if __name__ == "__main__":           
+    # Ensures it prints entire arrays when logging instead of going [1 1 1 ... 2 2 2]
+    np.set_printoptions(threshold=np.inf)
 
-# Establish Environment Size - Chooses max horizontal and vertical dimensions and create rectangle
-horizontal = 6000.0 # m
-vertical = 6000.0 # m
+    # What graphs should it print
+    MAIN.PRINT_DARP = True
+    MAIN.PRINT_TREE = False
+    MAIN.PRINT_PATH = True
+    MAIN.PRINT_CIRCLE_CENTRES = False
+    MAIN.JOIN_REGIONS_FOR_REFUEL = True
+    MAIN.PRINT_TARGET = True
 
-# Establish Small Node size
-GG = refuelling(horizontal,vertical)
-GG.centre_obstacles = True # If you want central block of starting region to be viewed as an obstacle, set to True
+    # Establish Environment Size - Chooses max horizontal and vertical dimensions and create rectangle
+    horizontal = 6000.0 # m
+    vertical = 6000.0 # m
 
-n_r = 2
-obs_perc = 5
+    # Establish Small Node size
+    GG = refuelling(horizontal,vertical)
+    GG.centre_obstacles = True # If you want central block of starting region to be viewed as an obstacle, set to True
 
-GG.randomise_obs(obs_perc)
-GG_Success = GG.refuel_randomise_start(n_r)
-GG.set_target()
+    n_r = 2
+    obs_perc = 5
 
-if GG_Success == True:
-    # Other parameters
-    distance_measure = 0 # 0, 1, 2 - Euclidean, Manhattan, GeodisicManhattan
-    Imp = False
-    maxIter = 10000
+    GG.randomise_obs(obs_perc)
+    GG_Success = GG.refuel_randomise_start(n_r)
+    GG.set_target()
 
-    rows = GG.rows
-    cols = GG.cols
-    obs = GG.obs # Note this is before removal of enclosed space, which can increase the number of robots
-    n_r_equivalent = GG.n_r
-    dcells = math.ceil( ((rows*cols-obs)/n_r_equivalent)*0.3 ) # discrepancy of X% allowed
+    if GG_Success == True:
+        # Other parameters
+        distance_measure = 0 # 0, 1, 2 - Euclidean, Manhattan, GeodisicManhattan
+        Imp = False
+        maxIter = 10000
 
-    print_graphs = True
+        rows = GG.rows
+        cols = GG.cols
+        obs = GG.obs # Note this is before removal of enclosed space, which can increase the number of robots
+        n_r_equivalent = GG.n_r
+        dcells = math.ceil( ((rows*cols-obs)/n_r_equivalent)*0.3 ) # discrepancy of X% allowed
 
-    # RUNNING SIMULATION #
-    file_log = "MAIN_LOGGING.txt"
-    target_log = "TARGET_LOG.txt"
-    EnvironmentGrid = GG.GRID
+        print_graphs = True
 
-    #  Call this to do directory management and recompile Java files - better to keep separate for when running multiple sims
-    MAIN.algorithm_start(recompile=True)
+        # RUNNING SIMULATION #
+        file_log = "MAIN_LOGGING.txt"
+        target_log = "TARGET_LOG.txt"
+        EnvironmentGrid = GG.GRID
 
-    # Call this to run DARP and MST
-    RA = MAIN.Run_Algorithm(EnvironmentGrid, GG.rip, dcells, Imp, print_graphs,dist_meas=distance_measure,log_active=False,log_filename=file_log,target_filename=target_log,target_active=True,refuels = GG.refuels)
-    RA.set_continuous(GG.rip_sml,GG.rip_cont,tp_cont=GG.targ_cont,start_cont = GG.start_cont)
-    RA.main()
+        #  Call this to do directory management and recompile Java files - better to keep separate for when running multiple sims
+        MAIN.algorithm_start(recompile=True)
 
-    if print_graphs == True:
-        plt.show()
+        # Call this to run DARP and MST
+        RA = MAIN.Run_Algorithm(EnvironmentGrid, GG.rip, dcells, Imp, print_graphs,dist_meas=distance_measure,log_active=False,log_filename=file_log,target_filename=target_log,target_active=True,refuels = GG.refuels)
+        RA.set_continuous(GG.rip_sml,GG.rip_cont,tp_cont=GG.targ_cont,start_cont = GG.start_cont)
+        RA.main()
+        
+        if print_graphs == True:
+            plt.show()

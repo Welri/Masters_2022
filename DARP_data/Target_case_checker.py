@@ -15,7 +15,6 @@ import sys
 import random
 import time
 
-
 # # DIRECTORY MANAGEMENT FOR DARP IMPORT
 path = pathlib.Path(__file__).parent.absolute()
 path = pathlib.Path(path).parent.absolute()
@@ -33,9 +32,20 @@ class target_case_checker_DARP:
         path = pathlib.Path(__file__).parent.absolute()
         # Changing current working directory to be able to find Case**.txt files
         os.chdir(path)
-    def get_data(self,file_name):
+    def get_data(self,file_name,refuels=False):
         FILE = open(file_name,"r")
+        self.refuels = refuels
+        if (self.refuels == True):
+            start_string = FILE.readline()
+            self.start_cont = self.string_to_grid(start_string,1,2,data_type="float")
+            self.start_cont = self.start_cont[0]
+            self.no_refuels = int(FILE.readline())
+        else:
+            FILE.readline()
+            FILE.readline()
         # Read in constants (UAV and camera dependant)
+        self.take_off = float(FILE.readline())
+        self.landing = float(FILE.readline())
         self.refuel_time = int(FILE.readline()) # Seconds
         self.take_off_height = float(FILE.readline()) # Metres
         self.flight_time = int(FILE.readline()) # Seconds
@@ -155,9 +165,20 @@ class target_case_checker_MST:
         path = pathlib.Path(__file__).parent.absolute()
         # Changing current working directory to be able to find Case**.txt files
         os.chdir(path)
-    def get_data(self,file_name):
+    def get_data(self,file_name,refuels = False):
         FILE = open(file_name,"r")
+        self.refuels = refuels
+        if (self.refuels == True):
+            start_string = FILE.readline()
+            self.start_cont = self.string_to_grid(start_string,1,2,data_type="float")
+            self.start_cont = self.start_cont[0]
+            self.no_refuels = int(FILE.readline())
+        else:
+            FILE.readline()
+            FILE.readline()
         # Read in constants (UAV and camera dependant)
+        self.take_off = float(FILE.readline())
+        self.landing = float(FILE.readline())
         self.refuel_time = int(FILE.readline()) # Seconds
         self.take_off_height = float(FILE.readline()) # Metres
         self.flight_time = int(FILE.readline()) # Seconds
@@ -211,15 +232,18 @@ class target_case_checker_MST:
         FILE.close()
     def rerun_MST(self, file_log = "MAIN_LOGGING.txt", show_grid=False,distance_measure = 0,recompile=True,corners = 0):
         # Set general style constants
-        DPM.FIGSIZE = 7
+        DPM.FIGSIZE = 8
         DPM.PRINT_COLOURS = True
-        DPM.PRINT_DARP = True
-        DPM.PRINT_TREE = True
+        DPM.PRINT_DARP = False
+        DPM.PRINT_TREE = False
         DPM.TREE_COLOR = 'w'
         DPM.PATH_COLOR = 'k'
-        DPM.TARGET_FINDING = False #self.TARGET_FINDING
+        DPM.PRINT_TARGET = True
+        DPM.TARGET_FINDING = True
         DPM.DARP_FIGURE_TITLE = "Environment Grid"
-        DPM.FIGURE_TITLE = "DARP Results with Dynamic Constraints"
+        DPM.FIGURE_TITLE = "Central Ground Station Example with Survivor Detection"
+        DPM.HORIZONTAL_WEIGHT = 1
+        DPM.VERTICAL_WEIGHT = 1 # Less favoured
 
         if(corners==0):
             DPM.PRINT_PATH = False
@@ -244,6 +268,8 @@ class target_case_checker_MST:
         DPM.FLIGHT_TIME = self.flight_time
         DPM.VEL = self.vel
         DPM.Height = self.height
+        DPM.Take_off = self.take_off
+        DPM.Landing = self.landing
         DPM.r_min = self.r_min
         DPM.DISC_H = self.disc_h
         DPM.DISC_V = self.disc_v
@@ -253,14 +279,30 @@ class target_case_checker_MST:
         DPM.V_max = self.v_max
         DPM.H_max = self.h_max
 
+        print("Actual values in target checker:")
+        print("--------------------------------------")
+        print("R_max: ", round(DPM.r_max,1), " \t\tR_min: ", round(DPM.r_min,1))
+        print("DISC_V: ", round(DPM.DISC_V,1), " \t\tDISC_h: ", round(DPM.DISC_H,1))
+        print("VEL: ", DPM.VEL, " \t\tBANK: ", DPM.phi_max)
+
         # Recompile and working directory setup
         DPM.algorithm_start(recompile=recompile)
-        
-        # Algorithm setup - sets up all the necessary variables
-        RA = DPM.Run_Algorithm(self.Grid, self.rip, self.dcells, self.Imp, show_grid, dist_meas=distance_measure,log_active=True,log_filename=file_log,target_active=False)
-        RA.set_continuous(self.rip_sml,self.rip_cont,self.tp_cont)
-        # Reruns only the MST section, maintaining the DARP output from the original run
-        RA.rerun_MST_only(self.A,self.Ilabel)
+        if(self.refuels == True):
+            DPM.PRINT_LANDING = False
+            DPM.PRINT_TAKE_OFF = False
+            DPM.JOIN_REGIONS_FOR_REFUEL = True
+            DPM.PRINT_SCHEDULE = True
+            # Algorithm setup - sets up all the necessary variables
+            RA = DPM.Run_Algorithm(self.Grid, self.rip, self.dcells, self.Imp, show_grid, dist_meas=distance_measure,log_active=True,log_filename=file_log,target_active=False,refuels=self.no_refuels,ground_station=True)
+            RA.set_continuous(self.rip_sml,self.rip_cont,self.tp_cont,start_cont=self.start_cont)
+            # Reruns only the MST section, maintaining the DARP output from the original run
+            RA.rerun_MST_only(self.A,self.Ilabel)
+        else:
+            # Algorithm setup - sets up all the necessary variables
+            RA = DPM.Run_Algorithm(self.Grid, self.rip, self.dcells, self.Imp, show_grid, dist_meas=distance_measure,log_active=True,log_filename=file_log,target_active=False,ground_station=False)
+            RA.set_continuous(self.rip_sml,self.rip_cont,self.tp_cont)
+            # Reruns only the MST section, maintaining the DARP output from the original run
+            RA.rerun_MST_only(self.A,self.Ilabel)
     def import_bool(self, string):
         # Extract boolean variables
         if string[0] == "1" or string[0] == "t" or string[0] == "T":
@@ -330,8 +372,29 @@ if __name__ == "__main__":
     # TCC_DARP.rerun_DARP(show_grid=show_grid,distance_measure=dist_meas,recompile=True)
     
     TCC = target_case_checker_MST()
-    TCC.get_data("TARGET_CASES/Toy_Problem.txt")
-    TCC.rerun_MST(show_grid=show_grid,distance_measure=2,recompile=True,corners=3) # Distance measure shouldn't have an effect - too lazy to remove it
+    TCC.get_data("REFUEL_CASES/Toy_Refuel_Wait.txt",refuels=True)
+    TCC.refuel_time = 2*60
+    # TCC.tp_cont[0] = 4000 # Spitskop
+    # TCC.flight_time = 9*60*60 # Strix400 
+    # TCC.tp_cont[1] = 2000 # Jbay
+    TCC.tp_cont[1] = 200
+    TCC.rerun_MST(show_grid=show_grid,distance_measure=0,recompile=True,corners=3) # Distance measure shouldn't have an effect - too lazy to remove it
 
+    total_cells = TCC.rows*TCC.cols
+    obs = len(np.argwhere(TCC.Grid == 1))
+    free_cells = total_cells - obs
+
+    # print(TCC.flight_time)
+    # print(np.max([ TCC.disc_h/TCC.vel , TCC.disc_v/TCC.vel , (TCC.arc_l)*1.3/TCC.vel ]))
+    # print(TCC.disc_h/TCC.vel,TCC.disc_v/TCC.vel,(TCC.arc_l)*1.3/TCC.vel)
+    # n_cells = TCC.flight_time/(4*np.max([TCC.disc_h/TCC.vel,TCC.disc_v/TCC.vel,(TCC.arc_l)*1.3/TCC.vel]))
+    # print(free_cells)
+    # print(n_cells)
+    # n_req = free_cells/n_cells
+    # print(n_req)
+    
+    # plt.xlim(1649,3770)
+    # plt.ylim(3063,5183)
+    plt.savefig("Recent.png")
     if (show_grid == True):
         plt.show()

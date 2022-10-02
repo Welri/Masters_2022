@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+VECTOR_LENGTH = 1.5
+
 class path_obj:
     def __init__(self,Ccd,Cca,Pd,Pa,Hsl,Lsl,Hf,PathLen):
         self.Ccd = Ccd
@@ -110,47 +112,74 @@ class path_planner:
             path = self.paths[i]
             if(path.PathLen < self.shortest_path.PathLen):
                 self.shortest_path=path
-    def plot_shortest_path(self,title,xaxis=700):
-        AR = 1/1 # (y/x)
-        # xaxis = 700
-        yaxis = AR*xaxis
-        plt.figure(figsize=[xaxis/100,yaxis/100])
-        plt.xlabel('East')
-        plt.ylabel('North')
-        plt.title(title)
-        plt.grid()
-        plt.axis([-xaxis/2,xaxis,-yaxis/2,yaxis])
+    def plot_shortest_path(self):
+        # AR = 1/1 # (y/x)
+        # yaxis = AR*xaxis
+        # plt.figure(figsize=[xaxis/100,yaxis/100])
+        # plt.xlabel('East')
+        # plt.ylabel('North')
+        # plt.title(title)
+        # plt.grid()
+        # plt.axis([-xaxis/2,xaxis,-yaxis/2,yaxis])
         xcirc=self.R*np.cos(np.linspace(0,2*math.pi,100)) 
         ycirc=self.R*np.sin(np.linspace(0,2*math.pi,100))
         HS = np.array([math.cos(self.Head_start), math.sin(self.Head_start)])
         HE = np.array([math.cos(self.Head_end), math.sin(self.Head_end)])
-        plt.plot(self.PS[0]+np.array([0, -1])*HS[0]*2*self.R, self.PS[1]+np.array([0, -1])*HS[1]*2*self.R,'C0')   # Starting direction vector
-        plt.plot(self.PE[0]+np.array([0, 1])*HE[0]*2*self.R, self.PE[1]+np.array([0, 1])*HE[1]*2*self.R,'C0')     # Ending direction vector
-        plt.text(self.PS[0]-2.3*self.R*HS[0],self.PS[1]-2.3*self.R*HS[1],'Start')          # Text on graph
-        plt.text(self.PE[0]+2.3*self.R*HE[0],self.PE[1]+2.3*self.R*HE[1],'End')            # Text on graph
+        # plt.arrow(self.PS[0]-HS[0]*VECTOR_LENGTH*self.R, self.PS[1]-HS[1]*VECTOR_LENGTH*self.R, 0.75*(HS[0]*VECTOR_LENGTH*self.R), 0.75*(HS[1]*VECTOR_LENGTH*self.R), color='C0',zorder=100,width=1,head_width=10,head_length=10*2)
+        # plt.arrow(self.PE[0], self.PE[1], 0.75*(HE[0]*VECTOR_LENGTH*self.R), 0.75*(HE[1]*VECTOR_LENGTH*self.R), color='C0',zorder=100,width=1,head_width=10,head_length=10*2)
+        plt.plot(self.PS[0]+np.array([0, -1])*HS[0]*2*self.R, self.PS[1]+np.array([0, -1])*HS[1]*2*self.R,'C0',zorder=100)   # Starting direction vector
+        plt.plot(self.PE[0]+np.array([0, 1])*HE[0]*2*self.R, self.PE[1]+np.array([0, 1])*HE[1]*2*self.R,'C0',zorder=100)     # Ending direction vector
+        # plt.text(self.PS[0]-2.3*self.R*HS[0],self.PS[1]-2.3*self.R*HS[1],'Start')          # Text on graph
+        # plt.text(self.PE[0]+2.3*self.R*HE[0],self.PE[1]+2.3*self.R*HE[1],'End')            # Text on graph
         plt.plot(xcirc+self.shortest_path.Ccd[0],ycirc+self.shortest_path.Ccd[1],'C2')                            # Departure circle
         plt.plot(xcirc+self.shortest_path.Cca[0],ycirc+self.shortest_path.Cca[1],'C3')                            # Arrival circle
         plt.plot([self.shortest_path.Pa[0], self.shortest_path.Pd[0]],[self.shortest_path.Pa[1],self.shortest_path.Pd[1]],'C0')                          # Straight path
-    def plot_paths(self,separate_plots=False,xaxis=700):
+    def plot_shortest_path2(self,title,xaxis=700):
         AR = 1/1 # (y/x)
-        # xaxis = 700
         yaxis = AR*xaxis
-        if(separate_plots==False):
-            plt.figure(figsize=[xaxis/100,yaxis/100])
-            plt.title('Four Possible Paths')
-            plt.xlabel('East')
-            plt.ylabel('North')
-            plt.grid()
-            plt.axis([-xaxis/2,xaxis,-yaxis/2,yaxis])
+        plt.figure(figsize=[xaxis/150,yaxis/150])
+        plt.xlabel('X Axis Distance [m]',fontsize=10)
+        plt.ylabel('Y Axis Distance [m]',fontsize=10)
+        plt.title(title,fontsize=15)
+        plt.grid()
+        plt.axis([0,xaxis,0,yaxis])
         xcirc=self.R*np.cos(np.linspace(0,2*math.pi,100)) 
         ycirc=self.R*np.sin(np.linspace(0,2*math.pi,100))
         HS = np.array([math.cos(self.Head_start), math.sin(self.Head_start)])
         HE = np.array([math.cos(self.Head_end), math.sin(self.Head_end)])
+        plt.plot(self.PS[0],self.PS[1],'k.',zorder=100)
+        plt.plot(self.PE[0],self.PE[1],'k.',zorder=100)
+        # plt.arrow(self.PS[0]-HS[0]*VECTOR_LENGTH*self.R, self.PS[1]-HS[1]*VECTOR_LENGTH*self.R, 0.75*(HS[0]*VECTOR_LENGTH*self.R), 0.75*(HS[1]*VECTOR_LENGTH*self.R), color='C0',zorder=100,width=1,head_width=10,head_length=10*2)
+        # plt.arrow(self.PE[0], self.PE[1], 0.75*(HE[0]*VECTOR_LENGTH*self.R), 0.75*(HE[1]*VECTOR_LENGTH*self.R), color='C0',zorder=100,width=1,head_width=10,head_length=10*2)
+        plt.plot(self.PS[0]+np.array([0, -1])*HS[0]*VECTOR_LENGTH*self.R, self.PS[1]+np.array([0, -1])*HS[1]*VECTOR_LENGTH*self.R,'C0')   # Starting direction vector
+        plt.plot(self.PE[0]+np.array([0, 1])*HE[0]*VECTOR_LENGTH*self.R, self.PE[1]+np.array([0, 1])*HE[1]*VECTOR_LENGTH*self.R,'C0')     # Ending direction vector
+        # plt.text(self.PS[0]-2.3*self.R*HS[0],self.PS[1]-2.3*self.R*HS[1],'Start')          # Text on graph
+        # plt.text(self.PE[0]+2.3*self.R*HE[0],self.PE[1]+2.3*self.R*HE[1],'End')            # Text on graph
+        plt.plot(xcirc+self.shortest_path.Ccd[0],ycirc+self.shortest_path.Ccd[1],'C2')                            # Departure circle
+        plt.plot(xcirc+self.shortest_path.Cca[0],ycirc+self.shortest_path.Cca[1],'C3')                            # Arrival circle
+        plt.plot([self.shortest_path.Pa[0], self.shortest_path.Pd[0]],[self.shortest_path.Pa[1],self.shortest_path.Pd[1]],'C0')                          # Straight path
+    def plot_paths(self,title,separate_plots=False,xaxis=700):
+        AR = 1/1 # (y/x)
+        # xaxis = 700
+        yaxis = AR*xaxis
         if(separate_plots==False):
-            plt.plot(self.PS[0]+np.array([0, -1])*HS[0]*2*self.R, self.PS[1]+np.array([0, -1])*HS[1]*2*self.R,'C0')   # Starting direction vector
-            plt.plot(self.PE[0]+np.array([0, 1])*HE[0]*2*self.R, self.PE[1]+np.array([0, 1])*HE[1]*2*self.R,'C0')     # Ending direction vector
-            plt.text(self.PS[0]-1.6*self.R*HS[0],self.PS[1]-1.4*self.R*HS[1],'Start')          # Text on graph
-            plt.text(self.PE[0]+2.3*self.R*HE[0],self.PE[1]+2.3*self.R*HE[1],'End')            # Text on graph
+            plt.figure(figsize=[xaxis/150,yaxis/150])
+            plt.title(title,fontsize=15)
+            plt.xlabel('X Axis Distance [m]',fontsize=10)
+            plt.ylabel('Y Axis Distance [m]',fontsize=10)
+            plt.grid()
+            plt.axis([0,xaxis,0,yaxis])
+        xcirc=self.R*np.cos(np.linspace(0,2*math.pi,100)) 
+        ycirc=self.R*np.sin(np.linspace(0,2*math.pi,100))
+        HS = np.array([math.cos(self.Head_start), math.sin(self.Head_start)])
+        HE = np.array([math.cos(self.Head_end), math.sin(self.Head_end)])
+        plt.plot(self.PS[0],self.PS[1],'k.',zorder=100)
+        plt.plot(self.PE[0],self.PE[1],'k.',zorder=100)
+        if(separate_plots==False):
+            plt.plot(self.PS[0]+np.array([0, -1])*HS[0]*VECTOR_LENGTH*self.R, self.PS[1]+np.array([0, -1])*HS[1]*VECTOR_LENGTH*self.R,'C0')   # Starting direction vector
+            plt.plot(self.PE[0]+np.array([0, 1])*HE[0]*VECTOR_LENGTH*self.R, self.PE[1]+np.array([0, 1])*HE[1]*VECTOR_LENGTH*self.R,'C0')     # Ending direction vector
+            # plt.text(self.PS[0]-1.6*self.R*HS[0],self.PS[1]-1.4*self.R*HS[1],'Start')          # Text on graph
+            # plt.text(self.PE[0]+2.3*self.R*HE[0],self.PE[1]+2.3*self.R*HE[1],'End')            # Text on graph
         if(separate_plots==True):
             titles = ['RR Plot','RL Plot','LL Plot','LR Plot']
         for i in range(4):
@@ -173,37 +202,37 @@ if __name__ == "__main__":
     V = 30
     Phi_max = 26 # max bank angle
     r_min = V*V/9.81*np.tan(Phi_max) 
-    r_min = 100
+    r_min = 50
 
     # Start and End coordinates
-    PS = np.array([0,0])
-    PE = np.array([500,500])
+    PS = np.array([200,200])
+    PE = np.array([700,700])
     # Start and End headings
-    Head_start = 90*math.pi/180
-    Head_end = (180+180)*math.pi/180
+    Head_start = 90*math.pi/180 # Up
+    Head_end = (180+180)*math.pi/180 # Right
     start = [PS,Head_start]
     end = [PE,Head_end]
 
     PP = path_planner(start,end,r_min)
     PP.shortest_path()
-    PP.plot_shortest_path('Shortest Path Take-off')
+    PP.plot_shortest_path2('Shortest Departure Path',xaxis=1000)
     print((PP.shortest_path).PathLen)
-    PP.plot_paths(separate_plots=False)
+    PP.plot_paths('Four Possible Departure Paths',separate_plots=False,xaxis=1000)
     # plt.show()
 
     # Start and End coordinates
-    PS = np.array([500,500])
-    PE = np.array([0,0])
+    PS = np.array([700,700])
+    PE = np.array([300,300])
     # Start and End headings
-    Head_start = 0*math.pi/180
-    Head_end = 270*math.pi/180
+    Head_start = (180+180)*math.pi/180 # Left
+    Head_end = 270*math.pi/180 # Down
     start = [PS,Head_start]
     end = [PE,Head_end]
 
     PP = path_planner(start,end,r_min)
     PP.shortest_path()
     print((PP.shortest_path).PathLen)
-    PP.plot_shortest_path('Shortest Path Landing')
-    PP.plot_paths(separate_plots=False)
+    PP.plot_shortest_path2('Shortest Approach Path',xaxis=1000)
+    PP.plot_paths('Four Possible Approach Paths',separate_plots=False,xaxis=1000)
 
     plt.show()
