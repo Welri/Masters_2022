@@ -232,7 +232,7 @@ class target_case_checker_MST:
         FILE.close()
     def rerun_MST(self, file_log = "MAIN_LOGGING.txt", show_grid=False,distance_measure = 0,recompile=True,corners = 0):
         # Set general style constants
-        DPM.FIGSIZE = 8
+        DPM.FIGSIZE = 12 #8
         DPM.PRINT_COLOURS = True
         DPM.PRINT_DARP = False
         DPM.PRINT_TREE = False
@@ -241,7 +241,7 @@ class target_case_checker_MST:
         DPM.PRINT_TARGET = True
         DPM.TARGET_FINDING = True
         DPM.DARP_FIGURE_TITLE = "Environment Grid"
-        DPM.FIGURE_TITLE = "Central Ground Station Example with Survivor Detection"
+        DPM.FIGURE_TITLE = "Spitskop Central Ground Station Example with Survivor Detection"# Survivor Detection Coverage Paths"
         DPM.HORIZONTAL_WEIGHT = 1
         DPM.VERTICAL_WEIGHT = 1 # Less favoured
 
@@ -292,6 +292,7 @@ class target_case_checker_MST:
             DPM.PRINT_TAKE_OFF = False
             DPM.JOIN_REGIONS_FOR_REFUEL = True
             DPM.PRINT_SCHEDULE = True
+            DPM.SCHEDULE_TICKS = 50
             # Algorithm setup - sets up all the necessary variables
             RA = DPM.Run_Algorithm(self.Grid, self.rip, self.dcells, self.Imp, show_grid, dist_meas=distance_measure,log_active=True,log_filename=file_log,target_active=False,refuels=self.no_refuels,ground_station=True)
             RA.set_continuous(self.rip_sml,self.rip_cont,self.tp_cont,start_cont=self.start_cont)
@@ -372,12 +373,10 @@ if __name__ == "__main__":
     # TCC_DARP.rerun_DARP(show_grid=show_grid,distance_measure=dist_meas,recompile=True)
     
     TCC = target_case_checker_MST()
-    TCC.get_data("REFUEL_CASES/Toy_Refuel_Wait.txt",refuels=True)
-    TCC.refuel_time = 2*60
-    # TCC.tp_cont[0] = 4000 # Spitskop
-    # TCC.flight_time = 9*60*60 # Strix400 
+    TCC.get_data("REFUEL_CASES/DARP02_R.txt",refuels=True)
+    TCC.refuel_time = 5*60
     # TCC.tp_cont[1] = 2000 # Jbay
-    TCC.tp_cont[1] = 200
+    # TCC.tp_cont[1] = 200
     TCC.rerun_MST(show_grid=show_grid,distance_measure=0,recompile=True,corners=3) # Distance measure shouldn't have an effect - too lazy to remove it
 
     total_cells = TCC.rows*TCC.cols

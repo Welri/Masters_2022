@@ -37,11 +37,12 @@ PRINT_RIP = True
 PRINT_TARGET = False
 VERTICAL_WEIGHT = 1
 HORIZONTAL_WEIGHT = 1
+SCHEDULE_TICKS = 15
 
 # Parameters for specific examples
 EXAMPLE = False # Is an example environment currently active
 if(EXAMPLE):
-    EX_TYPE = 3 # 0:MOUNTAINOUS_LOW, 1:MOUNTAINOUS_HIGH, 2:GROUND, 3:MARINE
+    EX_TYPE = 2 # 0:MOUNTAINOUS_LOW, 1:MOUNTAINOUS_HIGH, 2:GROUND, 3:MARINE
     EX_EXECUTE_ALGORITHM = True # When true it removes enclosed space, runs DARP more than once and runs prim
     EX_MAP = "Obs" # "Sat" - Satellite, "Topo" - Topographic, "Obs" - Topographic with Obstacles
     OBS = True # Whether or not to print discrete obstacles
@@ -56,14 +57,15 @@ PRINT_HALF_SHIFTS = True # CAREFUL when changing this
 PRINT_DYNAMIC_CONSTRAINTS = True # CAREFUL when changing this
 PRINT_CIRCLE_CENTRES = False # Only valid with dynamic constraints active
 
-LINEWIDTH = 0.7#0.5
+LINEWIDTH = 0.3#0.7
 S_MARKERIZE = LINEWIDTH*3#4
-MARKERSIZE=LINEWIDTH*14#12
-TARGET_MARKERSIZE = LINEWIDTH*6
+MARKERSIZE=LINEWIDTH*18#12
+TARGET_MARKERSIZE = LINEWIDTH*12 #6
 TICK_SPACING = 1
 DARP_FIGURE_TITLE = "DARP Results"
 FIGURE_TITLE = "Champaigne Castle with Removed Obstacles to Remove Enclosed Spaces"
 TARGET_FINDING = False # Does path truncation and target printing
+RUN_PRIM = True
 JOIN_REGIONS_FOR_REFUEL = False
 
 ################################ GENERAL PARAMETERS ################################################################################################
@@ -89,7 +91,7 @@ if(EXAMPLE):
         V_cruise = 14
         V_stall = 7
         REFUEL_TIME = 100 # Seconds
-        TAKE_OFF_HEIGHT = 300
+        TAKE_OFF_HEIGHT = 350
         FLIGHT_TIME = 9*60*60 # Seconds
     elif(EX_TYPE == 2):
         # Sony RX1R II
@@ -101,6 +103,7 @@ if(EXAMPLE):
         sensor_height = 24.0 # mm
         px_w = 8000
         px_h = 5320
+        # '''
         # Wingtra
         V_climb_h = 2.5
         V_climb_c = 3
@@ -117,12 +120,17 @@ if(EXAMPLE):
         else:
             # Value for 2000m take-off
             FLIGHT_TIME = 42 * 60 # seconds
-        # # Strix
-        # V_cruise = 14
-        # V_stall = 7
-        # REFUEL_TIME = 100 # Seconds
-        # TAKE_OFF_HEIGHT = 750
-        # FLIGHT_TIME = 9*60*60 # Seconds
+        '''
+        # Strix
+        V_climb_h = 0 # this means there is no VTOL
+        V_climb_c = 5.7 
+        V_sink = 4 # estimate
+        V_cruise = 14
+        V_stall = 7
+        REFUEL_TIME = 100 # Seconds
+        TAKE_OFF_HEIGHT = 790
+        FLIGHT_TIME = 6*60*60 # Seconds
+        '''
     elif(EX_TYPE==3):
         # Sony RX1R II
         focal_length = 35.0 # mm
@@ -153,22 +161,31 @@ else:
     sensor_height = 24.0 # mm
     px_w = 8000
     px_h = 5320
-    # Wingtra
-    V_climb_h = 2.5
-    V_climb_c = 3
-    V_sink = 6
-    V_cruise = 16 # m/s
-    V_stall = 0 # Unknown
+    # # Wingtra
+    # V_climb_h = 2.5
+    # V_climb_c = 3
+    # V_sink = 6
+    # V_cruise = 16 # m/s
+    # V_stall = 0 # Unknown
+    # REFUEL_TIME = 100 # Seconds
+    # ''' !!!!! CHOSEN !!!!! '''
+    # TAKE_OFF_HEIGHT = 750 # m (TERRAIN DEPENDANT)
+    # # Flight time dependent on take-off height
+    # if(TAKE_OFF_HEIGHT<500):
+    #     # Value for 0 - 500m take-off
+    #     FLIGHT_TIME = 59 * 60 # seconds
+    # else:
+    #     # Value for 2000m take-off
+    #     FLIGHT_TIME = 42 * 60 # seconds
+    # Strix
+    V_climb_h = 0 # this means there is no VTOL
+    V_climb_c = 5.7 
+    V_sink = 4 # estimate
+    V_cruise = 14
+    V_stall = 7
     REFUEL_TIME = 100 # Seconds
-    ''' !!!!! CHOSEN !!!!! '''
-    TAKE_OFF_HEIGHT = 750 # m (TERRAIN DEPENDANT)
-    # Flight time dependent on take-off height
-    if(TAKE_OFF_HEIGHT<500):
-        # Value for 0 - 500m take-off
-        FLIGHT_TIME = 59 * 60 # seconds
-    else:
-        # Value for 2000m take-off
-        FLIGHT_TIME = 42 * 60 # seconds
+    TAKE_OFF_HEIGHT = 350
+    FLIGHT_TIME = 9*60*60 # Seconds
 ################################ HEIGHT AND VELOCITY ################################################################################################
 # CALCULATE MAXIMUM ALLOWABLE HEIGHT
 GSD_max = 4.7 # 4cm/px
@@ -180,31 +197,41 @@ if(EXAMPLE):
     if(EX_TYPE==0):
         VEL = 14.0 # m/s
         Height = 160.0 # m above heighest point on ground
+        h_g = 150 # value that gets added to account for take-off height
     elif(EX_TYPE==1):
         VEL = 14.0 # m/s
         Height = 158 # m above heighest point on ground
+        h_g = 177
     elif(EX_TYPE==2):
+        # '''
         # Wingtra
         VEL = 16.0 # m/s
-        # # Strix
-        # VEL = 14.0
+        '''
+        # Strix
+        VEL = 14.0
+        '''
         Height = 210.0 # m above heighest point on ground
+        h_g = 60
     elif(EX_TYPE==3):
         # GULL
         VEL = 19.0 # m/s
         Height = 205.0 # m above heighest point on ground
+        h_g = 10
 else:
-    VEL = 16.0 # m/s
-    Height = 210.0 # m above heighest point on ground
+    # VEL = 16.0 # m/s
+    # Height = 210.0 # m above heighest point on ground
+    h_g = 0
+    VEL = 14.0 # m/s
+    Height = 160.0 # m above heighest point on ground
 
 # Take-off time
 if(V_climb_h == 0):
-    Take_off = Height/V_climb_c # time to reach altitude
+    Take_off = (Height + h_g)/V_climb_c # time to reach altitude
 else:
-    Take_off = 0.9*Height/V_climb_h + 0.1*Height/V_climb_c
+    Take_off = 0.9*(Height + h_g)/V_climb_h + 0.1*(Height + h_g)/V_climb_c
 
 # Landing time
-Landing = Height/V_sink
+Landing = (Height + h_g)/V_sink
 
 print("TAKE OFF: ",Take_off,"LANDING: ",Landing)
 
@@ -223,9 +250,6 @@ if(VEL>V_max):
 if(VEL<=V_stall):
     print("Error: Velocity is below stall.")
     exit()
-# if(VEL<V_stall):
-# print("Error: Velocity is too low. Stall Velocity: ",V_stall," m/s")
-# exit()
 
 if(PRINTS):
     print("USEFUL VALUES")
@@ -262,7 +286,7 @@ ARC_L = (DISC_V/2.0 - r_min) + r_min*np.pi/2.0 + (DISC_H/2.0 - r_min) # two stra
 if(PRINTS):
     print("GSD: ",round(min(GSD_h,GSD_w),2),"Cross-track overlap: ", round(CT_Overlap,2),"\n")
 
-################################ -- CLASSES -- ################################################################################################
+################################ -- FUNCTIONS AND CLASSES -- ################################################################################################
 
 class algorithm_start:
     def __init__(self,recompile=True):
@@ -418,10 +442,10 @@ class Run_Algorithm:
             self.obs = len(np.argwhere(self.Grid == 1))
             if(PRINTS):
                 print("Aborting Algorithm...")
-            return()
+            
         if self.DARP_success == False:
-            if(PRINTS):
-                print("No solution was found...")
+            print("No DARP solution was found...")
+            self.abort = True
         self.time_DARP_total = time.time_ns() - timestart
         
         # Print DARP
@@ -433,149 +457,373 @@ class Run_Algorithm:
         # temporary for example
         
         # PRIM MST SECTION
-        timestart = time.time_ns()
-        self.primMST()
-        self.time_prim = time.time_ns() - timestart
+        if (self.abort == False)and(RUN_PRIM == True):
+            timestart = time.time_ns()
+            self.primMST()
+            self.time_prim = time.time_ns() - timestart
 
         # Logging
         if(self.log_active == True):
             file_log = open(self.log_filename, "a")
-            if(self.abort == False):
+            try:
                 file_log.write(str(self.abort))
-                file_log.write(",")
-                file_log.write(str(self.dcells))
-                file_log.write(",")
-                file_log.write(str(self.Imp))
-                file_log.write(",")
-                file_log.write(str(self.rows))
-                file_log.write(",")
-                file_log.write(str(self.cols))
-                file_log.write(",")
-                file_log.write(str(self.n_r))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.es_flag))
-                file_log.write(",")
-                file_log.write(str(self.cc))
-                file_log.write(",")
-                file_log.write(str(self.rl))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.maxIter))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.obs))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.DARP_success))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.discr_achieved))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.iterations))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.time_DARP_total))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.time_prim))
-                file_log.write(",")
-                file_log.write(str(self.print_graphs))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 AOEstring = str(self.ArrayOfElements)
                 AOEstring = AOEstring.replace("\n", '')
                 AOEstring = AOEstring.replace("[", '')
                 AOEstring = AOEstring.replace("]", '')
                 file_log.write(AOEstring)
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 AOEperc_string = str(self.AOEperc)
                 AOEperc_string = AOEperc_string.replace("[", '')
                 AOEperc_string = AOEperc_string.replace("]", '')
                 AOEperc_string = AOEperc_string.replace("\n", '')
                 file_log.write(AOEperc_string)
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 file_log.write(str(self.maxDiscr))
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 conBoolstring = str(self.connected_bool)
                 conBoolstring = conBoolstring.replace('\n', '')
                 conBoolstring = conBoolstring.replace('[', '')
                 conBoolstring = conBoolstring.replace(']', '')
                 file_log.write(conBoolstring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.runs))
+            except:
+                file_log.write("None")
+            file_log.write(',')
+            try:
+                file_log.write(str(self.total_iterations))
+            except:
+                file_log.write("None")
+            file_log.write(',')
+            try:
+                totaltimestring = str(self.total_time)
+                totaltimestring = totaltimestring.replace('\n', '')
+                totaltimestring = totaltimestring.replace('[', '')
+                totaltimestring = totaltimestring.replace(']', '')
+                file_log.write(totaltimestring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                totalenergystring = str(self.total_energy)
+                totalenergystring = totalenergystring.replace('\n', '')
+                totalenergystring = totalenergystring.replace('[', '')
+                totalenergystring = totalenergystring.replace(']', '')
+                file_log.write(totalenergystring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                rotationsstring = str(self.rotations)
+                rotationsstring = rotationsstring.replace('\n', '')
+                rotationsstring = rotationsstring.replace('[', '')
+                rotationsstring = rotationsstring.replace(']', '')
+                file_log.write(rotationsstring)
+            except:
+                file_log.write("None")
+                
+            file_log.write(",")
+            try:
+                distancesstring = str(self.distances)
+                distancesstring = distancesstring.replace('\n', '')
+                distancesstring = distancesstring.replace('[', '')
+                distancesstring = distancesstring.replace(']', '')
+                file_log.write(distancesstring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+
+            if(self.ground_station == True):
+                try:
+                    schedulestring = str(self.schedule)
+                    schedulestring = schedulestring.replace('\n', '')
+                    schedulestring = schedulestring.replace('[', '')
+                    schedulestring = schedulestring.replace(']', '')
+                    file_log.write(schedulestring)
+                except:
+                    file_log.write("None")
                 file_log.write(",")
-                # ilabelstring = str(self.Ilabel_final)
-                # ilabelstring = ilabelstring.replace('\n', '')
-                # ilabelstring = ilabelstring.replace('[', '')
-                # ilabelstring = ilabelstring.replace(']', '')
-                # file_log.write(ilabelstring)
-                # file_log.write(",")
+            else:
+                file_log.write("None")
+                file_log.write(",")
+            if(TARGET_FINDING):
+                try:
+                    file_log.write(str(self.tp_detect_time))
+                except:
+                    file_log.write("None")
+                file_log.write(",")
+            else:
+                file_log.write("None")
+                file_log.write(",")
+            try:
+                file_log.write(str(self.max_time))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.max_energy))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+
+            # Everything that is necessary to rerun in target_case_checker.py
+            if(self.ground_station == True):
+                # Refuel logging - need to indicate on target logger when using this
+                try:
+                    self.start_cont[0] = self.vertical - self.start_cont[0]
+                    startstring=str(self.start_cont)
+                    startstring = startstring.replace('\n', '')
+                    startstring = startstring.replace('[', '')
+                    startstring = startstring.replace(']', '')
+                    file_log.write(startstring)
+                except:
+                    file_log.write("None")
+                file_log.write(",")
+                try:
+                    file_log.write(str(self.refuels))
+                except:
+                    file_log.write("None")
+                file_log.write(",")
+            else:
+                file_log.write("None")
+                file_log.write(",")
+                file_log.write("None")
+                file_log.write(",")
+            try:
+                file_log.write(str(Take_off))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(Landing))
+            except:
+                file_log.write("None")    
+            file_log.write(",")
+            try:
+                file_log.write(str(REFUEL_TIME))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(TAKE_OFF_HEIGHT))
+                file_log.write(",")
+                file_log.write(str(FLIGHT_TIME))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(VEL))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(Height))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(r_min))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(DISC_H))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(DISC_V))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(r_max))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(ARC_L))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(GSD_h))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(V_max))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(H_max))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:                
+                file_log.write(str(self.rows))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.cols))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.n_r))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.cc))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.rl))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.dcells))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.Imp))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(TARGET_FINDING))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                self.tp_cont[0] = self.vertical - self.tp_cont[0]
+                targetstring=str(self.tp_cont)
+                targetstring = targetstring.replace('\n', '')
+                targetstring = targetstring.replace('[', '')
+                targetstring = targetstring.replace(']', '')
+                file_log.write(targetstring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 gridstring = str(self.Grid.reshape(1, self.rows*self.cols))
                 gridstring = gridstring.replace('\n', '')
                 gridstring = gridstring.replace('[', '')
                 gridstring = gridstring.replace(']', '')
                 file_log.write(gridstring)
-                file_log.write(",")
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                ripstring = str(self.rip.reshape(1,self.n_r*2))
+                ripstring = ripstring.replace('\n', '')
+                ripstring = ripstring.replace('[', '')
+                ripstring = ripstring.replace(']', '')
+                file_log.write(ripstring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                ripsmlstring = str(self.rip_sml.reshape(1,self.n_r*2))
+                ripsmlstring = ripsmlstring.replace('\n', '')
+                ripsmlstring = ripsmlstring.replace('[', '')
+                ripsmlstring = ripsmlstring.replace(']', '')
+                file_log.write(ripsmlstring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                ripcontstring = str(self.rip_cont_temp.reshape(1,self.n_r*2))
+                ripcontstring = ripcontstring.replace('\n', '')
+                ripcontstring = ripcontstring.replace('[', '')
+                ripcontstring = ripcontstring.replace(']', '')
+                file_log.write(ripcontstring)
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 Astring = str(self.A.reshape(1, self.rows*self.cols))
                 Astring = Astring.replace('\n', '')
                 Astring = Astring.replace('[', '')
                 Astring = Astring.replace(']', '')
                 file_log.write(Astring)
-                file_log.write(',')
-                file_log.write(str(self.runs))
-                file_log.write(',')
-                file_log.write(str(self.total_iterations))
-                file_log.write('\n')
-            else:
-                file_log.write(str(self.abort))
-                file_log.write(",")
-                file_log.write(str(self.dcells))
-                file_log.write(",")
-                file_log.write(str(self.Imp))
-                file_log.write(",")
-                file_log.write(str(self.rows))
-                file_log.write(",")
-                file_log.write(str(self.cols))
-                file_log.write(",")
-                file_log.write(str(self.n_r))
-                file_log.write(",")
-                file_log.write(str(self.es_flag))
-                file_log.write(",")
-                file_log.write(str(self.cc))
-                file_log.write(",")
-                file_log.write(str(self.rl))
-                file_log.write(",")
-                file_log.write(str(self.maxIter))
-                file_log.write(",")
-                file_log.write(str(self.obs))
-                file_log.write(",")
+            except:
                 file_log.write("None")
-                file_log.write(",")
+            file_log.write(",")
+            try:
+                Ilabelstring = str(self.Ilabel_final.reshape(1, self.n_r*self.rows*self.cols))
+                Ilabelstring = Ilabelstring.replace('\n', '')
+                Ilabelstring = Ilabelstring.replace('[', '')
+                Ilabelstring = Ilabelstring.replace(']', '')
+                file_log.write(Ilabelstring)
+            except:
                 file_log.write("None")
-                file_log.write(",")
-                file_log.write("None")
-                file_log.write(",")
-                file_log.write(str(self.time_DARP_total))
-                file_log.write(",")
-                file_log.write(str(self.time_prim))
-                file_log.write(",")
-                file_log.write(str(self.print_graphs))
-                file_log.write(",")
-                file_log.write("None")
-                file_log.write(",")
-                file_log.write("None")
-                file_log.write(",")
-                file_log.write("None")
-                file_log.write(",")
-                file_log.write("None")
-                file_log.write(",")
-                # file_log.write("None")
-                # file_log.write(",")
-                gridstring = str(self.Grid.reshape(1, self.rows*self.cols))
-                gridstring = gridstring.replace('\n', '')
-                gridstring = gridstring.replace('[', '')
-                gridstring = gridstring.replace(']', '')
-                file_log.write(gridstring)
-                file_log.write(",")
-                file_log.write("None")
-                file_log.write(',')
-                file_log.write(str(self.runs))
-                file_log.write(',')
-                file_log.write(str(self.total_iterations))
-                file_log.write('\n')
+            file_log.write('\n')       
             file_log.close()
-        if(self.target_active == True):
+        if(self.target_active == True)and(self.abort == False):
             file_log = open(self.target_filename, "a")
             file_log.write("\n")
             # Constants for rerun (UAV and camera dependent)
@@ -694,11 +942,18 @@ class Run_Algorithm:
             self.cont_DARP_graph() # prints final graph
         
         # PRIM MST SECTION
+        timestart = time.time_ns()
         self.primMST()
+        self.time_prim = time.time_ns() - timestart
+
     def primMST(self):
         # Run MST algorithm
         pMST = Prim_MST_maker(self.A,self.n_r,self.rows,self.cols,self.rip,self.Ilabel_final,self.rip_cont,self.rip_sml,self.tp_cont,self.n_link,self.refuels,self.start_cont,self.ground_station)
         self.schedule = np.zeros([self.n_r,6])
+        self.total_time = np.zeros(self.n_r)
+        self.total_energy = np.zeros([self.n_r])
+        self.rotations = np.zeros([self.n_r])
+        self.distances = np.zeros([self.n_r])
         
         # Scheduling protocol
         if(self.ground_station == True):
@@ -802,6 +1057,10 @@ class Run_Algorithm:
             for r in range(self.n_r):
                 pMST.waypoint_final_generation(pMST.wpnts_cont_list[r],pMST.wpnts_class_list[r],r,0)
 
+        # Save target detection time
+        if (TARGET_FINDING):
+            self.tp_detect_time = pMST.TIME_BREAK
+
         if(PRINTS):
             print("\nALLOWABLE FLIGHT TIME [min]: ", FLIGHT_TIME/(60) )
         
@@ -816,36 +1075,47 @@ class Run_Algorithm:
                     pMST.print_graph(pMST.free_nodes_list[r],pMST.parents_list[r],self.ax,r)
         if(PRINT_DYNAMIC_CONSTRAINTS):   
             # Print relevant data in table
-            if(PRINTS):
-                if (self.ground_station == True):
-                    # data = [["Robot","Refuel","Orig Robot","Take-off [min]","Flight [min]","Wait [min]","Landing [min]","Total Time [min]","Total Energy [min]","Time Limit [min]","Time Diff [min]","Distance [km]","Rotations"]]
+            if (self.ground_station == True):
+                # data = [["Robot","Refuel","Orig Robot","Take-off [min]","Flight [min]","Wait [min]","Landing [min]","Total Time [min]","Total Energy [min]","Time Limit [min]","Time Diff [min]","Distance [km]","Rotations"]]
+                if(PRINTS):
                     data_times = [["Robot","Refuel","Take-off [min]","Departure [min]","Flight [min]","Wait [min]","Approach [min]","Landing [min]","Distance [km]","Rotations"]]
                     data_totals = [["Robot","Refuel","Total Time [min]","Total Energy [min]","Time Limit [min]","Time Excess [min]"]]
-                    for r in range(self.n_r):
-                        run = self.n_runs[r]
-                        r_og = self.n_link[r]
-                        take_off = pMST.TO_time[r]
-                        landing = pMST.LD_time[r]
-                        wait = self.schedule[r][3] - self.schedule[r][2]
-                        flight_time = pMST.time_totals[r] # This is still added to an array using original r value, not appended to a list like cumulative times etc.
-                        total_time = take_off + flight_time + wait + landing
-                        total_energy = 1.3*(take_off + wait + landing) + flight_time + pMST.rotations[r]*(ARC_L/VEL)*0.3 
-                        rot_ach = pMST.rotations[r]
-                        dist_ach = pMST.dist_totals[r]
-                        data_times.append([r_og, run,round(Take_off/60,1), round((take_off-Take_off)/60,1), round(flight_time/60,1), round(wait/60,1),round(Landing/60,1) , round((landing-Landing)/60,1), round(dist_ach/1000,1), round(rot_ach,0)])
+                for r in range(self.n_r):
+                    run = self.n_runs[r]
+                    r_og = self.n_link[r]
+                    take_off = pMST.TO_time[r]
+                    landing = pMST.LD_time[r]
+                    wait = self.schedule[r][3] - self.schedule[r][2]
+                    flight_time = pMST.time_totals[r] # This is still added to an array using original r value, not appended to a list like cumulative times etc.
+                    total_time = take_off + flight_time + wait + landing
+                    total_energy = 1.3*(take_off + wait + landing) + flight_time + pMST.rotations[r]*(ARC_L/VEL)*0.3 
+                    rot_ach = pMST.rotations[r]
+                    dist_ach = pMST.dist_totals[r]
+                    if(PRINTS):
+                        data_times.append([r_og, run,round(Take_off/60,1), round((take_off-Take_off)/60,1), round(flight_time/60,1), round(wait/60,1), round((landing-Landing)/60,1), round(Landing/60,1), round(dist_ach/1000,1), round(rot_ach,0)])
                         data_totals.append([r_og, run, round(total_time/60,1), round(total_energy/60,1), round(FLIGHT_TIME/60,1), round((FLIGHT_TIME - total_energy)/60,1)])
-                        # data.append([r,run,r_og,round(take_off/60,1),round(flight_time/60,1),round(wait/60,1),round(landing/60,1),round(total_time/60,1),round(total_energy/60,1),round(FLIGHT_TIME/60,1),round((FLIGHT_TIME - total_energy)/60,1),round(dist_ach/1000,1),round(rot_ach,0)])
-                        # print(tabulate(data))
+                    self.total_time[r] = total_time
+                    self.total_energy[r] = total_energy
+                    self.rotations[r] = rot_ach
+                    self.distances[r] = dist_ach
+                if(PRINTS):
                     print(tabulate(data_times))
                     print(tabulate(data_totals))
-                else:
+            else:
+                if(PRINTS):
                     data = [["Robot","Total Time [min]","Total Energy [min]","Time Limit [min]","Time Excess [min]","Distance [km]","Rotations"]]
-                    for r in range(self.n_r):
-                        total_time = pMST.time_totals[pMST.r_append[r]]
-                        energy_time = pMST.time_totals[pMST.r_append[r]] + pMST.rotations[r]*(ARC_L/VEL)*0.3                    
-                        rot_ach = pMST.rotations[r]
-                        dist_ach = pMST.dist_totals[r]
+                for r in range(self.n_r):
+                    total_time = pMST.time_totals[pMST.r_append[r]]
+                    energy_time = pMST.time_totals[pMST.r_append[r]] + pMST.rotations[r]*(ARC_L/VEL)*0.3                    
+                    rot_ach = pMST.rotations[r]
+                    dist_ach = pMST.dist_totals[r]
+                    if(PRINTS):    
                         data.append([r,round(total_time/(60),1),round(energy_time/60,1),round(FLIGHT_TIME/(60),1),round((FLIGHT_TIME - energy_time)/(60),1),round(dist_ach/1000,1),int(rot_ach)])
+                    self.total_time[r] = total_time
+                    self.total_energy[r] = energy_time
+                    self.rotations[r] = rot_ach
+                    self.distances[r] = dist_ach
+                if(PRINTS):
                     print(tabulate(data))
             
             # Print schedules in data table
@@ -863,14 +1133,22 @@ class Run_Algorithm:
                         data.append(l)
                 print(tabulate(data))
             
+            if (self.ground_station == True):
+                # End of flight schedule
+                self.max_time = np.max(self.schedule)
+            else:
+                # Longest path time
+                self.max_time = np.max(self.total_time)
+            self.max_energy = np.max(self.total_energy)
+
             # Print schedules graph
             if (self.ground_station == True)and(self.print_graphs)and(PRINT_SCHEDULE):
                 plt.rc('font', size=12)
                 plt.rc('axes', titlesize=15)
                 fig,ax = plt.subplots(figsize=(12,1.5*self.nr_og))
                 ax.set_yticks(np.arange(0,self.nr_og))
-                ax.set_xticks(np.linspace(0,np.max(self.schedule),15),minor=False)
-                ax.set_xticks(np.linspace(0,np.max(self.schedule),(15-1)*5+1),minor=True)
+                ax.set_xticks(np.linspace(0,np.max(self.schedule),SCHEDULE_TICKS),minor=False)
+                ax.set_xticks(np.linspace(0,np.max(self.schedule),(SCHEDULE_TICKS-1)*5+1),minor=True)
                 ax.invert_yaxis()
                 ax.set_ylabel("Robot")
                 ax.set_xlabel("Time [s]")
@@ -880,12 +1158,12 @@ class Run_Algorithm:
                                     Line2D([0], [0], color="C2", alpha=0.5, lw=4, label='Wait'),
                                     Line2D([0], [0], color="C3", alpha=0.5, lw=4, label='Approach and Landing'),
                                     Line2D([0], [0], color="C4", alpha=0.5, lw=4, label='Refueling') ]
-                plt.tight_layout()
+                # plt.tight_layout()
                 t_colours = ["C0","C1","C2","C3","C4"]
                 # Plot target finding time
                 if(TARGET_FINDING):
                     plt.plot(np.array([pMST.TIME_BREAK,pMST.TIME_BREAK]),np.array([-0.6,self.nr_og-0.4]),'k',linestyle='dashed',linewidth=1)
-                    plt.plot(pMST.TIME_BREAK,self.n_link[pMST.TARGET_CELL[0]],'xk',markersize = int(MARKERSIZE))
+                    plt.plot(pMST.TIME_BREAK,self.n_link[pMST.TARGET_CELL[0]],'xk',markersize = 8)
                 # Plot schedules
                 for r_og in range(self.nr_og):
                     # Plot per robot
@@ -914,7 +1192,7 @@ class Run_Algorithm:
                 # plt.grid(which='major',axis='x', color='k',linewidth=0.1)
                 # plt.grid(which='minor',axis='x', color='k',linestyle='dotted',linewidth=0.1)
                 # plt.xticks(rotation=90)
-                ax.legend(handles = legend_elements,loc="best")
+                ax.legend(handles = legend_elements,loc="right")
     def enclosed_space_handler(self):
         # Enclosed spaces (unreachable areas) are classified as obstacles
         ES = enclosed_space_check(
@@ -2737,7 +3015,7 @@ if __name__ == "__main__":
         GG.randomise_robots(n_r)
         GG.randomise_target()
     
-    # GG.randomise_robots(n_r)
+    GG.randomise_robots(n_r)
     
     # Clustered Robots Example
     # Example 1

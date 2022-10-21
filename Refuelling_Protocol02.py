@@ -73,6 +73,8 @@ class target_case_checker:
         DPM.REFUEL_TIME = self.refuel_time
         DPM.TAKE_OFF_HEIGHT = self.take_off_height
         DPM.FLIGHT_TIME = self.flight_time
+        DPM.Take_off = self.take_off
+        DPM.Landing = self.landing
         DPM.VEL = self.vel
         DPM.Height = self.height
         DPM.r_min = self.r_min
@@ -271,18 +273,19 @@ class refuelling:
             size_new = 3
             for i in range(1, math.ceil(n_eq/(8/self.spacing))):
                 size_new = size_new + 2
-        print("Estimated T_m: ", m_time/60)
+        if(DPM.PRINTS):
+            print("Estimated T_m: ", m_time/60)
         
         refuels = math.ceil(n_required/n_available)-1
         return(refuels)
     def possible_robots(self):
-        # Note: self.n_r needs to be determined before this function can be called
+        # Note: self.n_r (equivalent robots) needs to be determined before this function can be called
         self.possible_robots_list = list()
         self.cardinal_dir = [[1,0],[-1,0],[0,1],[0,-1]]
         okay = False
         self.robot_moves()
-        for r in range(self.rows):
-            for c in range(self.cols):
+        for r in range(self.overall_size-1, self.rows-(self.overall_size)):
+            for c in range(self.overall_size-1, self.cols-(self.overall_size)):
                 if self.GRID[r][c] != 1:
                     # Check relevant robot positions
                     okay = True
@@ -295,7 +298,7 @@ class refuelling:
                                 okay = False
                         else:
                             okay = False
-                        # Check for obstacles in vicinity of valid robot location - make sure at least one of the cardinal sides is FREE
+                        # Check for obstacles in vicinity of valid robot location - check for obstacles in cardinal locations
                         ob_count = 4
                         if okay == True:
                             for m in self.cardinal_dir:
@@ -306,7 +309,7 @@ class refuelling:
                                         ob_count-=1
                                 else:
                                     ob_count-=1
-                                if ob_count == 0:
+                                if ob_count <= 2: # All the cardinal directions should be free (note that the central ground station isn't an obstacle yet.)
                                     okay = False   
                 if okay == True:
                     self.possible_robots_list.append([r,c])
@@ -317,6 +320,7 @@ class refuelling:
         mi = 0
         for i in range(1, math.ceil(self.n_r/(8/self.spacing))):
             size = size + 2
+        self.overall_size = size # Saving the initial position region size
         rows = np.arange(-math.floor(size/2),math.ceil(size/2),self.spacing)
         cols = np.arange(-math.floor(size/2),math.ceil(size/2),self.spacing)
         # First row
@@ -404,7 +408,7 @@ if __name__ == "__main__":
     DPM.PRINT_LANDING = False
     DPM.PRINT_TAKE_OFF = False
     DPM.PRINT_SCHEDULE = True
-    '''
+    # '''
     # Establish Environment Size - Chooses max horizontal and vertical dimensions and create rectangle
     horizontal = 23*DPM.DISC_H*2 # m
     vertical = 23*DPM.DISC_V*2 # m
@@ -436,17 +440,16 @@ if __name__ == "__main__":
     
     # DPM.FLIGHT_TIME = 1*60*60
     RR = refuelling(TC.rows, TC.cols, TC.Grid)
-    RR.spacing = 2
+    RR.spacing = 1
     start = [1000,12000] # DARP00_A
-    # start = [2500,5500] # DARP01_A
-    # start = [1800,12000] # DARP02_A
+    # start = [2500,5500] # DARP02_A
     # start = [800,800] # DARP03_A
     # start = [500,1500] # Toy
     RR.set_start([RR.rows*DPM.DISC_V*2 - start[0],start[1]]) 
     n_r = 2
     success = RR.refuel(n_r)
     EnvironmentGrid = RR.GRID
-    # '''
+    '''
     if(success):  
         # Other parameters
         distance_measure = 0 # 0, 1, 2 - Euclidean, Manhattan, GeodisicManhattan
