@@ -511,6 +511,21 @@ class Run_Algorithm:
                 file_log.write("None")
             file_log.write(",")
             try:
+                file_log.write(str(self.st_etime))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.waypoint_etime))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
+                file_log.write(str(self.schedule_etime))
+            except:
+                file_log.write("None")
+            file_log.write(",")
+            try:
                 AOEstring = str(self.ArrayOfElements)
                 AOEstring = AOEstring.replace("\n", '')
                 AOEstring = AOEstring.replace("[", '')
@@ -945,10 +960,16 @@ class Run_Algorithm:
         timestart = time.time_ns()
         self.primMST()
         self.time_prim = time.time_ns() - timestart
-
     def primMST(self):
         # Run MST algorithm
         pMST = Prim_MST_maker(self.A,self.n_r,self.rows,self.cols,self.rip,self.Ilabel_final,self.rip_cont,self.rip_sml,self.tp_cont,self.n_link,self.refuels,self.start_cont,self.ground_station)
+        
+        # Execution times
+        self.waypoint_etime = pMST.waypoint_etime
+        self.schedule_etime = pMST.TOLD_etime
+        self.st_etime = pMST.st_etime
+
+        # Schedule variables
         self.schedule = np.zeros([self.n_r,6])
         self.total_time = np.zeros(self.n_r)
         self.total_energy = np.zeros([self.n_r])
@@ -957,6 +978,8 @@ class Run_Algorithm:
         
         # Scheduling protocol
         if(self.ground_station == True):
+            timestart = time.time_ns()
+            wpnt_etime = 0
             r_append = 0 # The waypoint, time and distance arrays get appended in a different order, tracked here
             for run in range(self.refuels+1):
                 take_off_total = 0 # Accumulated take-off times          
@@ -968,7 +991,11 @@ class Run_Algorithm:
                         self.schedule[r][0] = take_off_total # Start time
                         take_off_total = take_off_total + pMST.TO_time[r] # Add take-off time to total - this represents the time after take-off
                         self.schedule[r][1] = take_off_total # Time after take-off
+                        
+                        timestart_w = time.time_ns()
                         pMST.waypoint_final_generation(pMST.wpnts_cont_list[r],pMST.wpnts_class_list[r],r,take_off_total) # Start time is end of take-off
+                        wpnt_etime = wpnt_etime + (time.time_ns() - timestart_w)
+
                         flight_time = pMST.time_cumulative_list[r_append][-1] # Time after take-off and flight
                         self.schedule[r][2] = flight_time # Time after flight
                         if(r_og == 0):
@@ -1017,7 +1044,11 @@ class Run_Algorithm:
                             self.schedule[r][0] = max(self.schedule[r][0],refuel_end)
                             take_off_total = self.schedule[r][0] + pMST.TO_time[r] # Time after take-off
                             self.schedule[r][1] = take_off_total
+                        
+                        timestart_w = time.time_ns()
                         pMST.waypoint_final_generation(pMST.wpnts_cont_list[r],pMST.wpnts_class_list[r],r,take_off_total)
+                        wpnt_etime = wpnt_etime + (time.time_ns() - timestart_w)
+                        
                         flight_time = pMST.time_cumulative_list[r_append][-1] # Time after take-off and flight
                         self.schedule[r][2] = flight_time # Time after flight
                         if(r_og == 0):
@@ -1053,9 +1084,13 @@ class Run_Algorithm:
                                 # No refuel time
                                 self.schedule[r][5] = landing_time
                     r_append += 1 
+            self.schedule_etime = self.schedule_etime + (time.time_ns() - timestart) - wpnt_etime
+            self.waypoint_etime = self.waypoint_etime + wpnt_etime
         else:
+            timestart = time.time_ns()
             for r in range(self.n_r):
                 pMST.waypoint_final_generation(pMST.wpnts_cont_list[r],pMST.wpnts_class_list[r],r,0)
+            self.waypoint_etime = self.waypoint_etime + (time.time_ns() - timestart)
 
         # Save target detection time
         if (TARGET_FINDING):
@@ -1656,8 +1691,14 @@ class Prim_MST_maker:
         self.wpnts_class_list = list()
         self.p = np.ones([self.n_r],dtype=int)*-1
         
+        # Execution time variables
+        self.st_etime = 0
+        self.waypoint_etime = 0
+        self.TOLD_etime = 0
         # Generating Paths
         for r in range(self.n_r):
+### Tree Generation
+            timestart = time.time_ns()
             self.current_r = r
             free_nodes = np.argwhere(self.grids[r]==1) # vertice coordinates
             vertices = len(free_nodes) # number of vertices
@@ -1682,11 +1723,14 @@ class Prim_MST_maker:
                                 graph[node_ind][neighbour_node_ind[0][0]] = DISC_V*VERTICAL_WEIGHT # weights are just distance for now
 
             # JAVA MST COMMENTED OUT - indented
-                # self.write_input(graph,vertices)
-                # self.run_subprocess()
-                # parents = self.read_output(vertices)
-            parents = self.prim_algorithm(graph,vertices)
-
+            self.write_input(graph,vertices)
+            self.run_subprocess()
+            parents = self.read_output(vertices)
+            # parents = self.prim_algorithm(graph,vertices)
+            self.st_etime = self.st_etime + (time.time_ns() - timestart)
+###
+### Waypoint Generation
+            timestart = time.time_ns()
             self.free_nodes_list.append(free_nodes) # List of free mode coordinates per robot
             self.vertices_list.append(vertices)     # List of number of vertices per robot
             self.parents_list.append(parents)       # List of parent node numbers per robot
@@ -1731,8 +1775,11 @@ class Prim_MST_maker:
             # Append waypoints to larger list
             self.wpnts_cont_list.append(self.waypoints_cont)
             self.wpnts_class_list.append(self.waypoint_class)
-
-        # Shifting robot initial positions by half cell (if half shifts enabled)- p is found during waypoint generation
+            self.waypoint_etime = self.waypoint_etime + (time.time_ns() - timestart)
+###
+### Peddle Time
+        timestart = time.time_ns()
+        # Caculate take off and landing times if refuelling is happening
         if(self.ground_station == True):
             self.head = np.zeros(len(self.rip_cont))
             # Take-off pathlengths and times
@@ -1742,7 +1789,6 @@ class Prim_MST_maker:
             self.LD_dist = np.zeros(len(self.rip_cont))
             self.LD_time = np.zeros(len(self.rip_cont))
         
-        # Shift the robot starting position and caculate take off and landing times if refuelling is happening
         for r in range(self.n_r):
             if(self.ground_station == True):
                 dx = int(self.wpnts_cont_list[r][self.p[r]][1] - self.rip_cont[r][1]) # x_shift - x_old
@@ -1794,12 +1840,19 @@ class Prim_MST_maker:
                 self.LD_time[r] = self.LD_time[r] + Landing
 
             self.rip_cont[r] = self.wpnts_cont_list[r][self.p[r]]
-
-        # Shifting waypoints to start at robot position and making it closed loop
+        self.TOLD_etime = self.TOLD_etime + (time.time_ns() - timestart)
+###
+        # Print target finding details
         if(TARGET_FINDING)and(PRINTS):
             # print("Robot:",self.TARGET_CELL[0]," Ind: ",self.TARGET_CELL[1]," Waypoint: ",self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]]," Target Location: ",self.t_y,self.t_x)
             print("Waypoint: ",round(self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][0],1),round(self.wpnts_cont_list[self.TARGET_CELL[0]][self.TARGET_CELL[1]][1],1)," Target Location: ",round(self.t_y,1),round(self.t_x,1))
-        self.update_wpnts()  
+
+### Waypoint Generation
+        timestart = time.time_ns()
+        # Shifting waypoints to start at robot position and making it closed loop
+        self.update_wpnts()
+        self.waypoint_etime = self.waypoint_etime + (time.time_ns() - timestart)
+###
     def update_wpnts(self):
         for r in range(self.n_r):
             wpnts = self.wpnts_cont_list[r]
@@ -2752,7 +2805,31 @@ class Prim_MST_maker:
             total_weight+=minimum
             edges += 1
         return(parents)
-    # def peddle_planner()
+    def write_input(self, graph, vertices):
+        file_in = open("MST_Input.txt", "w")
+        file_in.write(str(vertices))
+        file_in.write('\n')
+        for i in range(vertices):
+            for j in range(vertices):
+                file_in.write(str(graph[i][j]))
+                file_in.write('\n')
+        file_in.close()
+    def run_subprocess(self):
+        if (os.name == 'nt'):
+            # print("The current operating system is WINDOWS")
+            subprocess.call([r'pMST_Run_Java.bat'])
+        elif (os.name == 'posix'):
+            # print("The current operating system is UBUNTU")
+            subprocess.call("./pMST_Run_Java.sh")
+        else:
+            print("WARNING: Unrecognised operating system")
+    def read_output(self, vertices):
+        file_out = open("MST_Output.txt", "r")
+        parents = np.zeros([vertices],dtype=int)
+        for i in range(vertices):
+            parents[i] = int(file_out.readline())
+        file_out.close()
+        return(parents)
 # Prim Related
 class mst_node:
     def __init__(self,i,x,y):
@@ -3015,19 +3092,20 @@ if __name__ == "__main__":
         GG.randomise_robots(n_r)
         GG.randomise_target()
     
-    GG.randomise_robots(n_r)
-    
-    # Clustered Robots Example
-    # Example 1
-    # GG.set_robots(3,[[4000,5400],[4000,5700],[4000,6000]])
-    # Example 0
-    # GG.set_robots(n_r,[[7000,11600],[7000,12100],[7000,12400],[7000,12700],[7000,13000]])
-    # Example 2
-    # GG.set_robots(n_r,[[3000,2500],[3000,2800],[3200,2500],[3200,2800]])  
-    # Example 3
-    # GG.set_robots(n_r,[[600,500],[700,500]])
+    if (EXAMPLE):
+        GG.randomise_robots(n_r)
+        
+        # Clustered Robots Example
+        # Example 1
+        # GG.set_robots(3,[[4000,5400],[4000,5700],[4000,6000]])
+        # Example 0
+        # GG.set_robots(n_r,[[7000,11600],[7000,12100],[7000,12400],[7000,12700],[7000,13000]])
+        # Example 2
+        # GG.set_robots(n_r,[[3000,2500],[3000,2800],[3200,2500],[3200,2800]])  
+        # Example 3
+        # GG.set_robots(n_r,[[600,500],[700,500]])
 
-    GG.randomise_target()
+        GG.randomise_target()
 
     # Other parameters
     Imp = False

@@ -41,7 +41,7 @@ maxIter = 10000
 distance_measure = 0 # 0,1,2 - Euclidean, Manhattan, GeodisicManhattan
 print_graphs = False
 
-titles = ["abort","es_flag","maxIter","obs","DARP_success","discr_achieved","iterations","time_DARP_total","time_prim","AOE","AOEperc","maxDiscr","conBool","runs","total_iterations","total_time","total_energy","rotations","distances","schedules","tp_detect_time","max_time","max energy","start_cont","refuels","take-off","landing","refuel_time","TO_height","flight_time","vel","height","r_min","DISC_H","DISC_V","r_max","ARC_L","GSD_h","V_max","H_max","rows","cols","n_r","cc","rl","dcells","imp","target_finding","tp_cont","GRID","rip","rip_sml","rip_cont_temp","A","Ilabel"]
+titles = ["abort","es_flag","maxIter","obs","DARP_success","discr_achieved","iterations","etime_DARP_total","total_STC_etime","etime_tree","etime_wpnt","etime_schedule","AOE","AOEperc","maxDiscr","conBool","runs","total_iterations","total_time","total_energy","rotations","distances","schedules","tp_detect_time","max_time","max energy","start_cont","refuels","take-off","landing","refuel_time","TO_height","flight_time","vel","height","r_min","DISC_H","DISC_V","r_max","ARC_L","GSD_h","V_max","H_max","rows","cols","n_r","cc","rl","dcells","imp","target_finding","tp_cont","GRID","rip","rip_sml","rip_cont_temp","A","Ilabel"]
 
 f = open(main_logfile, "a")
 f.write("\n")
@@ -52,13 +52,13 @@ f.write("\n")
 f.close()
 
 DPM.RUN_PRIM = True
-GROUND_STATION_RUNS = True
+GROUND_STATION_RUNS = False
 
-size1 = np.arange(10,75,5) # 10 to 50, 55 to 70
-size2 = np.arange(10,75,5) # 10 to 50, 55 to 70
+size1 = np.arange(10,105,5) # 10 to 50, 55 to 70
+size2 = np.arange(10,105,5) # 10 to 50, 55 to 70
 rl_vals = np.array([0.001])
 cc_vals = np.array([0.1])
-robots = np.array([2]) #np.arange(2,11,1)
+robots = np.array([2,4,6,8]) #np.arange(2,11,1)
 obstacles = np.array([0]) #np.arange(0,100,5)
 counter = 0
 runs = 5

@@ -134,5 +134,7 @@ dmypy.json
 # Text file excludes
 Input.txt
 Output.txt
+MST_Input.txt
+MST_Output.txt
 TARGET_LOG.txt
 MAIN_LOGGING.txt
